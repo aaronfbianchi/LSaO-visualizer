@@ -21,3 +21,10 @@ Bunch of demo videos:
 Why?
 ---------------------
 This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects). Once I made this, I decided to also include the other three types of visualizers.
+
+Usage:
+---------------------
+* Place your audio file in the same folder the executable is.
+* The video will be exported to the same folder. If there's another one with the same name as the output, it will overwrite it without asking.
+* FFmpeg is required.
+* The oscilloscope generator only works with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
