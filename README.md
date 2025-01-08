@@ -8,7 +8,8 @@ This tool that can export videos of a linear spectrum, tuned short waveform, lon
 Written to output videos that look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
 ![spectrum](https://github.com/karlstav/cava/blob/master/example_files/cava.gif "spectrum")
-![short-waveform](https://github.com/aaronfbianchi/LSaO/blob/main/img/short-waveform.gif "short-waveform")
+![example-short-waveform](https://github.com/aaronfbianchi/LSaO/blob/main/img/example-short-waveform.gif "example-short-waveform")
+![example-spectrum](https://github.com/aaronfbianchi/LSaO/blob/main/img/example-spectrum.gif "example-spectrum")
 
 Bunch of demo videos:
 ---------------------
