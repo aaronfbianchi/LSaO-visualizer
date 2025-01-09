@@ -42,8 +42,21 @@ Being a Python program, you'll need some libraries:
 * subprocess
 * os
 * webbrowser
-* cx_Freeze (for building from Linux)
+* cx_Freeze (if building from Linux)
+* pyinstaller (if building from Windows)
 
 You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP:
 
     pip install [LIBRARY_NAME]
+
+For building from Linux:
+
+    python setup.py build
+
+For building from Windows:
+
+    pyinstaller --onefile --console LSaO_Visualizer_v055.py
+
+For building from macOS, FreeBSD, OpenBSD, etc:
+
+I'm pretty sure you can build this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so and I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve.
