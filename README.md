@@ -59,4 +59,4 @@ For building from Windows:
 
 For building from macOS, FreeBSD, OpenBSD, etc:
 
-I'm pretty sure you can build this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so and I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve. Yes, you can do it!
+I'm pretty sure you can build this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so since I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve. Yes, you can do it!
