@@ -5,7 +5,7 @@ by [Aaron F. Bianchi](mailto:aaronf.bianchi@gmail.com)
 
 This tool can export videos of a linear spectrum, tuned short waveform, long waveform or stereo oscilloscope of a song.  It supports multiple audio and video formats.
 
-Written to output videos that look as <u>**violent**</u>, <u>**responsive**</u>, <u>**snappy**</u> and <u>**rough**</u> as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
+Written to output videos that look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
 ![example-spectrum](https://github.com/aaronfbianchi/LSaO/blob/main/img/example-spectrum.gif "example-spectrum")
 ![example-short-waveform](https://github.com/aaronfbianchi/LSaO/blob/main/img/example-short-waveform.gif "example-short-waveform")
@@ -45,7 +45,7 @@ Being a Python program, you'll need some libraries:
 * cx_Freeze (if building from Linux)
 * pyinstaller (if building from Windows)
 
-You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them in your <u>**virtual environment**</u> with PIP using your terminal or the Command Prompt:
+You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them in your **virtual environment** with PIP using your terminal or the Command Prompt:
 
     pip install [LIBRARY_NAME]
 
