@@ -7,8 +7,8 @@ This tool can export videos of a linear spectrum, tuned short waveform, long wav
 
 Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
-![example-spectrum](https://github.com/aaronfbianchi/LSaO/blob/main/img/example-spectrum.gif "example-spectrum")
-![example-short-waveform](https://github.com/aaronfbianchi/LSaO/blob/main/img/example-short-waveform.gif "example-short-waveform")
+![example-spectrum](https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif "example-spectrum")
+![example-short-waveform](https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif "example-short-waveform")
 
 Bunch of demo videos
 ---------------------
@@ -33,7 +33,7 @@ Usage
 * FFmpeg is required.
 * The oscilloscope generator only works with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
 
-Tips if using in Windows:
+Tips if using in Windows
 -------------------------
 * You need to install FFmpeg manually and add it to PATH (this is NOT just downloading a random and of dubious origin "ffmpeg.exe" file and pasting it into the root folder of this program. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) on how to properly do it.
 * The default Windows video player is not gonna play the exported videos correctly. Try VLC instead. (You'll be able to use the exported videos in any video editing software just fine, though)
@@ -59,15 +59,15 @@ You'll probably have most of them already just by having Python anyway. If there
     # For installing your library
     pip install [LIBRARY_NAME]
 
-If building from Linux:
+For building from Linux:
 
     python setup.py build
 
-If building from Windows:
+For building from Windows:
 
     pyinstaller --onefile --console LSaO_Visualizer_v055.py
 
-If building from macOS, FreeBSD, OpenBSD, etc:
+For building from macOS, FreeBSD, OpenBSD, etc:
 
     I'm pretty sure you can build this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so since I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve. Yes, you can do it!
 
