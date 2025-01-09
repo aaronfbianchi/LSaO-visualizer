@@ -5,7 +5,7 @@ by [Aaron F. Bianchi](mailto:aaronf.bianchi@gmail.com)
 
 This tool can export videos of a linear spectrum, tuned short waveform, long waveform or stereo oscilloscope of a song.  It supports multiple audio and video formats.
 
-Written to output videos that look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
+Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
 ![example-spectrum](https://github.com/aaronfbianchi/LSaO/blob/main/img/example-spectrum.gif "example-spectrum")
 ![example-short-waveform](https://github.com/aaronfbianchi/LSaO/blob/main/img/example-short-waveform.gif "example-short-waveform")
