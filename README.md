@@ -22,6 +22,10 @@ Why?
 ---------------------
 This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects). Once I made this, I decided to also include the other three types of visualizers.
 
+Instalation
+---------------------
+You don't need to install it. Just double click the executable.
+
 Usage
 ---------------------
 * Place your audio file in the same folder the executable is.
@@ -29,9 +33,10 @@ Usage
 * FFmpeg is required.
 * The oscilloscope generator only works with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
 
-Instalation
----------------------
-You don't need to install it. Just double click the executable.
+Tips if using in Windows:
+-------------------------
+* You need to install FFmpeg manually and add it to PATH (this is NOT just downloading a random and of dubious origin "ffmpeg.exe" file and pasting it into the root folder of this program. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) on how to properly do it.
+* The default Windows video player is not gonna play the exported videos correctly. Try VLC instead. (You'll be able to use the exported videos in any video editing software just fine, though)
 
 Building from source
 ---------------------
@@ -66,7 +71,3 @@ For building from macOS, FreeBSD, OpenBSD, etc:
 
     I'm pretty sure you can build this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so since I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve. Yes, you can do it!
 
-Tips if using in Windows:
--------------------------
-* You need to install FFmpeg manually and add it to PATH (this is NOT just downloading a random and of dubious origin "ffmpeg.exe" file and pasting it into the root folder of this program. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) on how to properly do it.
-* The default Windows video player is not gonna play the exported videos correctly. Try VLC instead. (You'll be able to use the exported videos in any video editing software just fine, though)
