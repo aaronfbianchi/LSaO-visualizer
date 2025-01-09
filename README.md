@@ -59,11 +59,11 @@ You'll probably have most of them already just by having Python anyway. If there
     # For installing your library
     pip install [LIBRARY_NAME]
 
-If building from Linux
+If building from Linux:
 
     python setup.py build
 
-If building from Windows
+If building from Windows:
 
     pyinstaller --onefile --console LSaO_Visualizer_v055.py
 
