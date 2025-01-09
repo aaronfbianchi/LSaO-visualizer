@@ -45,5 +45,5 @@ Being a Python program, you'll need some libraries:
 * cx_Freeze (for building from Linux)
 
 You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP:
-  pip install [LIBRARY_NAME]
 
+    pip install [LIBRARY_NAME]
