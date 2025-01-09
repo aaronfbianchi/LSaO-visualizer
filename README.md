@@ -59,15 +59,15 @@ You'll probably have most of them already just by having Python anyway. If there
     # For installing your library
     pip install [LIBRARY_NAME]
 
-For building from Linux:
+If building from Linux
 
     python setup.py build
 
-For building from Windows
+If building from Windows
 
     pyinstaller --onefile --console LSaO_Visualizer_v055.py
 
-For building from macOS, FreeBSD, OpenBSD, etc:
+If building from macOS, FreeBSD, OpenBSD, etc:
 
     I'm pretty sure you can build this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so since I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve. Yes, you can do it!
 
