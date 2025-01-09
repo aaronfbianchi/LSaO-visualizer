@@ -47,6 +47,11 @@ Being a Python program, you'll need some libraries:
 
 You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP (please use a virtual environment) using your terminal or the Command Prompt:
 
+    # For seting up your virtual environment
+    python3 -m venv myenv
+    source myenv/bin/activate
+
+    # For installing your library
     pip install [LIBRARY_NAME]
 
 For building from Linux:
