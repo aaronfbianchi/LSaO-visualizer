@@ -1,7 +1,7 @@
 # LSaO Visualiser
-**L**inear **S**pectrum **a**nd **O**scilloscope Visualizer is an extremely fast audio visualization tool
-
 by [Aaron F. Bianchi](mailto:aaronf.bianchi@gmail.com) 
+
+**L**inear **S**pectrum **a**nd **O**scilloscope Visualizer is an extremely fast audio visualization tool
 
 This tool can export videos of a linear spectrum, tuned short waveform, long waveform or stereo oscilloscope of a song.  It supports multiple audio and video formats.
 
