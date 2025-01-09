@@ -1,5 +1,5 @@
 # LSaO Visualiser
-by [Aaron F. Bianchi](mailto:aaronf.bianchi@gmail.com) 
+by [Aaron F. Bianchi](https://aaronfbianchi.github.io/) 
 
 **L**inear **S**pectrum **a**nd **O**scilloscope Visualizer is an extremely fast audio visualization tool
 
