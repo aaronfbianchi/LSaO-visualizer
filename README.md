@@ -3,7 +3,7 @@
 
 by [Aaron F. Bianchi](mailto:aaronf.bianchi@gmail.com) 
 
-This tool that can export videos of a linear spectrum, tuned short waveform, long waveform or stereo oscilloscope of a song.  It supports multiple audio and video formats.
+This tool can export videos of a linear spectrum, tuned short waveform, long waveform or stereo oscilloscope of a song.  It supports multiple audio and video formats.
 
 Written to output videos that look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
