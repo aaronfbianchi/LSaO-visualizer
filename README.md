@@ -63,7 +63,7 @@ For building from Linux:
 
     python setup.py build
 
-For building from Windows:
+For building from Windows
 
     pyinstaller --onefile --console LSaO_Visualizer_v055.py
 
