@@ -45,7 +45,7 @@ Being a Python program, you'll need some libraries:
 * cx_Freeze (if building from Linux)
 * pyinstaller (if building from Windows)
 
-You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP:
+You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP using your terminal or the Command Prompt:
 
     pip install [LIBRARY_NAME]
 
