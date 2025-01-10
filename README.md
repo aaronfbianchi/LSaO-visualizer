@@ -42,13 +42,11 @@ Tips if using on Windows
 Running from source
 ---------------------
 Being a Python program, you'll need some libraries:
-* tkinter
-* numpy
-* scipy
-* subprocess
-* webbrowser
-* cx_Freeze (if running from Linux)
-* pyinstaller (if running from Windows)
+* tkinter v0.1.0
+* numpy v1.26.4
+* scipy v1.12.0
+* cx_Freeze v6.15.14 (if creating executable from Linux)
+* pyinstaller v6.3.0 (if creating executable from Windows)
 
 You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP (please use a virtual environment) using your terminal or the Command Prompt:
 
