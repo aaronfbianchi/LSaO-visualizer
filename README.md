@@ -22,7 +22,7 @@ Why?
 ---------------------
 This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects). Once I made this, I decided to also include the other three types of visualizers.
 
-Instalation
+Installation
 ---------------------
 You don't need to install it. Just double click the executable.
 
