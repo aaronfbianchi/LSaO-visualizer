@@ -41,14 +41,14 @@ Tips if using on Windows
 
 Running from source
 ---------------------
-Being a Python program, you'll need some libraries:
+Being a Python 3.11.2 program, you'll need some libraries:
 * tkinter v0.1.0
 * numpy v1.26.4
 * scipy v1.12.0
 * cx_Freeze v6.15.14 (if creating executable from Linux)
 * pyinstaller v6.3.0 (if creating executable from Windows)
 
-You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP (please use a virtual environment) using your terminal or the Command Prompt:
+It's most likely gonna work with other versions too. You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP (please use a virtual environment) using your terminal or the Command Prompt:
 
     # For setting up your virtual environment
     python3 -m venv myenv
