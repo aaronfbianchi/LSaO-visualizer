@@ -38,7 +38,8 @@ Tips if using on Windows
 * You need to install FFmpeg manually and add it to PATH (this is NOT just downloading a random and of dubious origin "ffmpeg.exe" file and pasting it into the root folder of this program. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) on how to properly do it.
 * The default Windows video player is not gonna play the exported videos correctly. Try VLC instead. (You'll be able to use the exported videos in any video editing software just fine, though)
 
-Building from source
+
+Running from source
 ---------------------
 Being a Python program, you'll need some libraries:
 * tkinter
@@ -46,8 +47,8 @@ Being a Python program, you'll need some libraries:
 * scipy
 * subprocess
 * webbrowser
-* cx_Freeze (if building from Linux)
-* pyinstaller (if building from Windows)
+* cx_Freeze (if running from Linux)
+* pyinstaller (if running from Windows)
 
 You'll probably have most of them already just by having Python anyway. If there's any you don't have, you can install them with PIP (please use a virtual environment) using your terminal or the Command Prompt:
 
@@ -58,15 +59,15 @@ You'll probably have most of them already just by having Python anyway. If there
     # For installing your library
     pip install [LIBRARY_NAME]
 
-For building from Linux:
+For creating executable from Linux:
 
     python setup.py build
 
-For building from Windows:
+For creating executable from Windows:
 
     pyinstaller --onefile --console LSaO_Visualizer_v055.py
 
-For building from macOS, FreeBSD, OpenBSD, etc:
+For creating executable from macOS, FreeBSD, OpenBSD, etc:
 
     I'm pretty sure you can build this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so since I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve. Yes, you can do it!
 
