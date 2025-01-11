@@ -42,7 +42,6 @@ Tips if using on Windows
 Running from source
 ---------------------
 Being a Python 3.11.2 program, you'll need some libraries:
-* tkinter v0.1.0
 * numpy v1.26.4
 * scipy v1.12.0
 * cx_Freeze v6.15.14 (if creating executable from Linux)
