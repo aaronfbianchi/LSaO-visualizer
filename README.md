@@ -41,9 +41,9 @@ Tips if using on Windows
 
 Running from source
 ---------------------
-Being a Python 3.11.2 program, you'll need some libraries, which you can see in the "requirements.txt" file.
+Being a Python 3.11.2 program, you'll need some libraries, which you can see in the "requirements.txt" file. To install them, run these commands.
 
-For Linux
+For Linux:
 
     # For setting up your virtual environment
     python3 -m venv venv
@@ -52,7 +52,7 @@ For Linux
     # Install libraries from requirements.txt
     pip install -r requirements.txt
 
-For Windows
+For Windows:
 
     # For setting up your virtual environment
     python -m venv venv
@@ -64,3 +64,15 @@ For Windows
 Aditionally, if you want to create an executable from source, these liraries have worked for me:
 * cx_Freeze v6.15.14 (if creating executable from Linux)
 * pyinstaller v6.3.0 (if creating executable from Windows)
+
+For creating executable from Linux:
+
+    python setup.py build
+
+For creating executable from Windows:
+
+    pyinstaller --onefile --console LSaO_Visualizer_v055.py
+
+For creating executable from macOS, FreeBSD, OpenBSD, etc:
+
+    I'm pretty sure you can create an executable of this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so since I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve. Yes, you can do it!
