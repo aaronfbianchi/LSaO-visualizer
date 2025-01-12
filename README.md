@@ -41,6 +41,26 @@ Tips if using on Windows
 
 Running from source
 ---------------------
-Being a Python 3.11.2 program, you'll need some libraries, which you can see in the "requirements.txt" file. Aditionally, if you want to create an executable from source, these liraries have worked for me:
+Being a Python 3.11.2 program, you'll need some libraries, which you can see in the "requirements.txt" file.
+
+For Linux
+
+    # For setting up your virtual environment
+    python3 -m venv venv
+    source venv/bin/activate
+
+    # Install libraries from requirements.txt
+    pip install -r requirements.txt
+
+For Windows
+
+    # For setting up your virtual environment
+    python -m venv venv
+    venv\Scripts\activate
+
+    # Install libraries from requirements.txt
+    pip install -r requirements.txt
+
+Aditionally, if you want to create an executable from source, these liraries have worked for me:
 * cx_Freeze v6.15.14 (if creating executable from Linux)
 * pyinstaller v6.3.0 (if creating executable from Windows)
