@@ -37,3 +37,10 @@ Tips if using on Windows
 -------------------------
 * You need to install FFmpeg manually and add it to PATH (this is NOT just downloading a random and of dubious origin "ffmpeg.exe" file and pasting it into the root folder of this program. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) on how to properly do it.
 * The default Windows video player is not gonna play the exported videos correctly. Try VLC instead. (You'll be able to use the exported videos in any video editing software just fine, though)
+
+
+Running from source
+---------------------
+Being a Python 3.11.2 program, you'll need some libraries, which you can see in the "requirements.txt" file. Aditionally, if you want to create an executable from source, these liraries have worked for me:
+* cx_Freeze v6.15.14 (if creating executable from Linux)
+* pyinstaller v6.3.0 (if creating executable from Windows)
