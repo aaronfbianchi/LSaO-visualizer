@@ -61,9 +61,9 @@ For Windows:
     # For installing the libraries
     pip install -r requirements.txt
 
-Aditionally, if you want to create an executable from source, these liraries have worked for me:
-* cx_Freeze v6.15.14 (if creating executable from Linux)
-* pyinstaller v6.3.0 (if creating executable from Windows)
+Aditionally, if you want to create an executable from source, these libraries have worked for me:
+* cx_Freeze v6.15.14 (For Linux)
+* pyinstaller v6.3.0 (For Windows)
 
 For creating executable from Linux:
 
