@@ -20,7 +20,7 @@ Bunch of demo videos
 
 Why?
 ---------------------
-This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects). Once I made this, I decided to also include the other three types of visualizers.
+This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects, but nobody wants to install After Effects anyway). Once I made this, I decided to also include the other three types of visualizers.
 
 Installation
 ---------------------
