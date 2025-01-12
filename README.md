@@ -49,16 +49,16 @@ For Linux:
     python3 -m venv venv
     source venv/bin/activate
 
-    # Install libraries from requirements.txt
+    # For installing the libraries
     pip install -r requirements.txt
 
 For Windows:
 
     # For setting up your virtual environment
-    python -m venv venv
+    python3 -m venv venv
     venv\Scripts\activate
 
-    # Install libraries from requirements.txt
+    # For installing the libraries
     pip install -r requirements.txt
 
 Aditionally, if you want to create an executable from source, these liraries have worked for me:
