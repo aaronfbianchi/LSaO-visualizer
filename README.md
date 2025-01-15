@@ -15,7 +15,7 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
 </div>
 <div style="display: flex; justify-content: center; align-items: center;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif" alt="GIF 1" width="300" height="300" style="margin-right: 20px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif" alt="GIF 1" width="410" height="300">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif" alt="GIF 1" width="410" height="300" style="margin-left: 20px;">
 </div>
 
 Bunch of demo videos
