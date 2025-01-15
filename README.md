@@ -10,7 +10,7 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
 ![example-spectrum](https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif "example-spectrum")
 ![example-short-waveform](https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif "example-short-waveform")
 <div style="display: flex; justify-content: center; align-items: center;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif" alt="Descriptive Text" width="800" height="204">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif" alt="Descriptive Text" width="720" height="204">
 </div>
 <div style="display: flex; justify-content: center; align-items: center;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif" alt="GIF 1" width="204" height="204" style="margin-right: 10px;">
