@@ -9,6 +9,7 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
 
 ![example-spectrum](https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif "example-spectrum")
 ![example-short-waveform](https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif "example-short-waveform")
+![example-oscilloscope](https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif "example-oscilloscope")
 
 Bunch of demo videos
 ---------------------
