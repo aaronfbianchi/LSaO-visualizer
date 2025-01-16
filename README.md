@@ -7,16 +7,25 @@ This tool can export videos of a linear spectrum, tuned short waveform, long wav
 
 Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
-<div style="display: flex; justify-content: center; align-items: center;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif" alt="Descriptive Text" width="720" height="204">
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif" 
+       alt="Example Spectrum GIF" 
+       style="max-width: 100%; height: auto; margin: 10px;">
 </div>
-<div style="display: flex; justify-content: center; align-items: center;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif" alt="Descriptive Text" width="720" height="204">
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif" 
+       alt="Example Short Waveform GIF" 
+       style="max-width: 100%; height: auto; margin: 10px;">
 </div>
-<div style="display: flex; justify-content: center; align-items: center;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif" alt="GIF 1" width="300" height="300" style="margin-right: 1px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif" alt="GIF 1" width="416" height="300">
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif" 
+       alt="Example Oscilloscope GIF" 
+       style="max-width: 48%; height: auto; margin: 10px;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif" 
+       alt="Example Long Waveform GIF" 
+       style="max-width: 48%; height: auto; margin: 10px;">
 </div>
+
 
 Bunch of demo videos
 ---------------------
