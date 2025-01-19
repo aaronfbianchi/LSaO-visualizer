@@ -8,21 +8,21 @@ This tool can export videos of a linear spectrum, tuned short waveform, long wav
 Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif" 
-       alt="Example Spectrum GIF" 
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif"
+       alt="Example Spectrum GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif" 
-       alt="Example Short Waveform GIF" 
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif"
+       alt="Example Short Waveform GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif" 
-       alt="Example Oscilloscope GIF" 
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif"
+       alt="Example Oscilloscope GIF"
        style="max-width: 48%; height: auto; margin: 10px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif" 
-       alt="Example Long Waveform GIF" 
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif"
+       alt="Example Long Waveform GIF"
        style="max-width: 48%; height: auto; margin: 10px;">
 </div>
 
@@ -38,6 +38,10 @@ Bunch of demo videos
 Why?
 ---------------------
 This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects, but who wants to install an Adobe product anyway). Once I made this, I decided to also include the other three types of visualizers.
+
+Download
+---------------------
+You can download it here: https://github.com/aaronfbianchi/LSaO-visualizer/releases
 
 Installation
 ---------------------
@@ -89,3 +93,4 @@ For creating executable from Linux:
 For creating executable from Windows:
 
     pyinstaller --onefile --console LSaO_Visualizer_v055.py
+
