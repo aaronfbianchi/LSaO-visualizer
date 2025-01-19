@@ -89,7 +89,3 @@ For creating executable from Linux:
 For creating executable from Windows:
 
     pyinstaller --onefile --console LSaO_Visualizer_v055.py
-
-For creating executable from macOS, FreeBSD, OpenBSD, etc:
-
-    I'm pretty sure you can create an executable of this from other OS's pretty easily given this is a python program, but I haven't cared about how to do so since I don't have other OS's apart from Linux or Windows installed anyway. Nothing that a Google search couldn't solve. Yes, you can do it!
