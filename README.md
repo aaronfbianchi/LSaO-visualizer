@@ -41,7 +41,7 @@ This small project started due to the omnipresence of logarithmic spectrum visua
 
 Download
 ---------------------
-You can download it here: https://github.com/aaronfbianchi/LSaO-visualizer/releases
+You can download it [here](https://github.com/aaronfbianchi/LSaO-visualizer/releases).
 
 Installation
 ---------------------
