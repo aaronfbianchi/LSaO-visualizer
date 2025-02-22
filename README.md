@@ -25,6 +25,11 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        alt="Example Long Waveform GIF"
        style="max-width: 48%; height: auto; margin: 10px;">
 </div>
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum-dB.gif"
+       alt="Example Spectrum dB GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+</div>
 
 
 Bunch of demo videos
