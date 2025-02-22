@@ -31,7 +31,6 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
 
-
 Bunch of demo videos
 ---------------------
 * [Hellhacker](https://www.youtube.com/watch?v=upkUpTIws48) by Aaron F. Bianchi
@@ -61,7 +60,7 @@ Usage
 
 Tips if using on Windows
 -------------------------
-* You need to install FFmpeg manually and add it to PATH. This is NOT just downloading a random and of dubious origin "ffmpeg.exe" file and pasting it into the root folder of this program. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) on how to properly do it.
+* You need to install FFmpeg manually and add it to PATH. Tthis is NOT just downloading a random and of dubious origin "ffmpeg.exe" file and pasting it into the root folder of this program. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) on how to properly do it.
 * The default Windows video player is not gonna play the exported videos correctly. Try VLC instead. (You'll be able to use the exported videos in any video editing software just fine, though)
 
 
@@ -97,5 +96,5 @@ For creating executable from Linux:
 
 For creating executable from Windows:
 
-    pyinstaller --onefile --console LSaO_Visualizer_v055.py
+    pyinstaller --onefile --console LSaO_Visualizer_v056.py
 
