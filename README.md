@@ -31,7 +31,7 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif"
        alt="Example Stereo Oscilloscope GIF"
        style="max-width: 18%; height: 18%; margin: 10px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar.gif"
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-github.gif"
        alt="Example Polar Oscilloscope GIF"
        style="max-width: 18%; height: 18%; margin: 10px;">
 </div>
