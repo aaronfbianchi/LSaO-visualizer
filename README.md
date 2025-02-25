@@ -28,7 +28,7 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif"
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-osc-github.gif"
        alt="Example Stereo Oscilloscope GIF"
        style="max-width: 18%; height: 18%; margin: 10px;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-github.gif"
