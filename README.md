@@ -3,7 +3,7 @@ by [Aaron F. Bianchi](https://aaronfbianchi.github.io/)
 
 Linear Spectrum and Oscilloscope Visualizer is an extremely fast audio visualization tool
 
-This tool can export videos of a linear spectrum, tuned short waveform, long waveform or stereo oscilloscope of a song.  It supports multiple audio and video formats.
+This tool can export videos of a linear spectrum, tuned short waveform, long waveform, stereo oscilloscope or polar oscilloscope of a song.  It supports multiple audio and video formats.
 
 Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
@@ -18,18 +18,26 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif"
-       alt="Example Oscilloscope GIF"
-       style="max-width: 48%; height: auto; margin: 10px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif"
-       alt="Example Long Waveform GIF"
-       style="max-width: 48%; height: auto; margin: 10px;">
-</div>
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum-dB.gif"
        alt="Example Spectrum dB GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif"
+       alt="Example Long Waveform GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+</div>
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif"
+       alt="Example Stereo Oscilloscope GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+</div>
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar.gif"
+       alt="Example Polar Oscilloscope GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+</div>
+
 
 Bunch of demo videos
 ---------------------
@@ -96,5 +104,5 @@ For creating executable from Linux:
 
 For creating executable from Windows:
 
-    pyinstaller --onefile --console LSaO_Visualizer_v056.py
+    pyinstaller --onefile --console LSaO_Visualizer_v060.py
 
