@@ -27,15 +27,13 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        alt="Example Long Waveform GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; flex-direction: row;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-oscilloscope.gif"
        alt="Example Stereo Oscilloscope GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+       style="max-width: 50%; height: auto; margin: 10px;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar.gif"
        alt="Example Polar Oscilloscope GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
+       style="max-width: 50%; height: auto; margin: 10px;">
 </div>
 
 
