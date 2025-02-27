@@ -3,7 +3,7 @@ from cx_Freeze import setup, Executable
 
 setup(
     name="LSaO Visualizer",
-    version="0.55",
-    description="Linear Spectrum and Osciloscope Visualizer Generator",
-    executables=[Executable("LSaO_Visualizer_v055.py")]
+    #version="0.55",
+    #description="Linear Spectrum and Osciloscope Visualizer Generator",
+    executables=[Executable("main.py")]
 )
