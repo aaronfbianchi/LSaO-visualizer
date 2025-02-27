@@ -40,6 +40,14 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        alt="Example Stereo Polar Oscilloscope GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-death.gif"
+       alt="Example Polar Oscilloscope (Violent) GIF"
+       style="max-width: 100%; height: auto; margin: 0px;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-stereo-death.gif"
+       alt="Example Stereo Polar Oscilloscope (Violent) GIF"
+       style="max-width: 100%; height: auto; margin: 0px;">
+</div>
 
 
 Bunch of demo videos
