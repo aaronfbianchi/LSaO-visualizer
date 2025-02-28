@@ -2135,7 +2135,7 @@ class PolarWindow:
         self.res_width = tk.IntVar(value=720)
         self.res_height = tk.IntVar(value=720)
         self.offset = tk.DoubleVar(value=0.5)
-        self.note = tk.StringVar(value="A4")
+        self.note = tk.StringVar(value="C4")
         self.interpolation = tk.IntVar(value="1")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
