@@ -496,7 +496,7 @@ def generate_spec_balance(output_name, vidfor, input_audio, audfor,fps, res_widt
     gmax = np.max([np.max(fsongL_res_2), np.max(fsongR_res_2)])
     fsongL_res_2 = (fsongL_res_2 - gmin)/(gmax - gmin) # proper normalization
     fsongR_res_2 = (fsongR_res_2 - gmin)/(gmax - gmin) # proper normalization
-    print("potoa")
+    print(" a")
     print(f"np.min(fsongL_res_2) {np.min(fsongL_res_2)}")
     print(f"np.min(fsongR_res_2) {np.min(fsongR_res_2)}")
     print(f"np.max(fsongL_res_2) {np.max(fsongL_res_2)}")
@@ -508,10 +508,10 @@ def generate_spec_balance(output_name, vidfor, input_audio, audfor,fps, res_widt
 
     fsong_vert = fsongR_res_2 - fsongL_res_2
     #fsong_vert = np.clip(np.log10(fsong_vert), 0.000001, 100000)
-    print("potob")
+    print(" b")
     fsong_vert = 0.95*res_width/2*(fsong_vert) + res_width/2
     print(fsong_vert)
-    print("potoc")
+    print(" c")
     #style = 2 ## STYLE OF THE DRAWING
     if style == "Just Points": ## DRAWS DOTS IN SCREEN
         points = True
@@ -549,7 +549,7 @@ def generate_spec_balance(output_name, vidfor, input_audio, audfor,fps, res_widt
         if filled == False:
             if points:## DRAWS JUST POINTS
                 for m in range(res_height):
-                    #print("potoxd")
+                    #print(" xd")
                     #print(m)
                     #print(res_height - m)
                     #print(int(fsong_vert[i,m]) - 1)
@@ -566,13 +566,13 @@ def generate_spec_balance(output_name, vidfor, input_audio, audfor,fps, res_widt
                     else:
                         frameData[res_height - m - 1, int(point1) -1: int(point2) -1] = True
         else: ## FILLED SPECTRUM
-            print("potoxv")
+            print(" xv")
             for m in range(res_height):
                 point1 = int(fsong_vert[i,m])
                 if point1 < width_o2:
-                    frameData[res_height - m - 1, width_o2:res_width - point1] = True
+                    frameData[res_height - m - 1, point1- res_width:width_o2] = True
                 else:
-                    frameData[res_height - m - 1, res_width - point1:width_o2] = True
+                    frameData[res_height - m - 1, width_o2:point1- res_width] = True
    
         #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
         if thickness > 1:
@@ -892,25 +892,25 @@ def generate_oscilloscope(output_name,vidfor,input_audio,audfor,fps, res_width, 
     audioL = np.pad(audioL,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     audioR = np.pad(audioR,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
-    print("poto")
+    print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audioRShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     print(f"shape audioLShaped {audioLShaped.shape}")
-    print("poto")
+    print(" ")
     for i in range(n_frames):
         audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame + extra_margin*2]
     print(f"shape audioLShaped {audioLShaped.shape}")
     print(f"shape audioRShaped {audioRShaped.shape}")
-    print("poto")
+    print(" ")
     audioLInterp = np.zeros((audioLShaped.shape[0],audioLShaped.shape[1]*interpolation)).astype(np.float16)
     audioRInterp = np.zeros((audioRShaped.shape[0],audioRShaped.shape[1]*interpolation)).astype(np.float16)
     print(f"audioLInterp {audioLInterp.shape}")
     print(f"audioRInterp {audioRInterp.shape}")
     if interpolation > 1:
-        print("poto")
+        print(" ")
         callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
-        print("poto")
+        print(" ")
         audioLInterp = signal.resample(audioLShaped, audioLShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audioRInterp = signal.resample(audioRShaped, audioRShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         print(f"audioLInterp {audioLInterp.shape}")
@@ -1018,7 +1018,7 @@ def generate_polar(output_name,vidfor,input_audio,audfor,channel,fps, res_width,
     audio = np.clip(audio,-1,1)
     audio = audio + offset ###################################################ADDING OFFSET
     audio = (audio/np.max(np.max(abs(abs(audio))))) ##NORMALIZATION AGAIN
-    print("potoxd")
+    print(" xd")
     print(f"audio {audio.shape}")
 
     erre = audio.astype(np.float16)
@@ -1048,25 +1048,25 @@ def generate_polar(output_name,vidfor,input_audio,audfor,channel,fps, res_width,
     audioL = np.pad(audioL,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     audioR = np.pad(audioR,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
-    print("poto")
+    print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audioRShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     print(f"shape audioLShaped {audioLShaped.shape}")
-    print("poto")
+    print(" ")
     for i in range(n_frames):
         audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame + extra_margin*2]
     print(f"shape audioLShaped {audioLShaped.shape}")
     print(f"shape audioRShaped {audioRShaped.shape}")
-    print("poto")
+    print(" ")
     audioLInterp = np.zeros((audioLShaped.shape[0],audioLShaped.shape[1]*interpolation)).astype(np.float16)
     audioRInterp = np.zeros((audioRShaped.shape[0],audioRShaped.shape[1]*interpolation)).astype(np.float16)
     print(f"audioLInterp {audioLInterp.shape}")
     print(f"audioRInterp {audioRInterp.shape}")
     if interpolation > 1:
-        print("poto")
+        print(" ")
         callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
-        print("poto")
+        print(" ")
         audioLInterp = signal.resample(audioLShaped, audioLShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audioRInterp = signal.resample(audioRShaped, audioRShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         print(f"audioLInterp {audioLInterp.shape}")
@@ -1165,13 +1165,13 @@ def generate_polar_stereo(output_name,vidfor,input_audio,audfor,fps, res_width, 
     
     audioL = (audio0*np.sin(theta)).astype(np.float16) ## 32768*0.95
     audioR = (audio1*np.cos(theta)).astype(np.float16) ## 32768*0.95
-    print("poto")
+    print(" ")
     
     ########### ROTATION 45 DEG ######################
     sqrt2_over_2 = np.sqrt(2) / 2
     audioLr = (audioR*sqrt2_over_2 + audioL*sqrt2_over_2).astype(np.float16)
     audioRr = (-audioR*sqrt2_over_2 + audioL*sqrt2_over_2).astype(np.float16)
-    print("poto")
+    print(" ")
     audioL = audioLr
     audioR = audioRr
     ##################################################
@@ -1192,25 +1192,25 @@ def generate_polar_stereo(output_name,vidfor,input_audio,audfor,fps, res_width, 
     audioL = np.pad(audioL,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     audioR = np.pad(audioR,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
-    print("poto")
+    print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audioRShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     print(f"shape audioLShaped {audioLShaped.shape}")
-    print("poto")
+    print(" ")
     for i in range(n_frames):
         audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame + extra_margin*2]
     print(f"shape audioLShaped {audioLShaped.shape}")
     print(f"shape audioRShaped {audioRShaped.shape}")
-    print("poto")
+    print(" ")
     audioLInterp = np.zeros((audioLShaped.shape[0],audioLShaped.shape[1]*interpolation)).astype(np.float16)
     audioRInterp = np.zeros((audioRShaped.shape[0],audioRShaped.shape[1]*interpolation)).astype(np.float16)
     print(f"audioLInterp {audioLInterp.shape}")
     print(f"audioRInterp {audioRInterp.shape}")
     if interpolation > 1:
-        print("poto")
+        print(" ")
         callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
-        print("poto")
+        print(" ")
         audioLInterp = signal.resample(audioLShaped, audioLShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audioRInterp = signal.resample(audioRShaped, audioRShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         print(f"audioLInterp {audioLInterp.shape}")
@@ -1694,7 +1694,7 @@ class SpecBalanceWindow:
 
     def __init__(self, master):
         self.master = master
-        self.master.title("Linear Spectral Balance Visualizer v0.01 by Aaron F. Bianchi")
+        self.master.title("Linear Spectral Balance Visualizer v0.03 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output")
@@ -2471,7 +2471,7 @@ def option8():
 
 # Main window
 root = tk.Tk()
-root.title("LSaO Visualizer v0.66")
+root.title("LSaO Visualizer v0.69")
 
 # Set initial size (width x height)
 #root.geometry("600x300")
