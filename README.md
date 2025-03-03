@@ -7,26 +7,31 @@ This tool can export videos of a linear spectrum, tuned short waveform, long wav
 
 Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white linear spectrum, waveform or oscilloscope over a black background for further processing with a video editor of your preference.
 
+Linear Spectrum:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif"
        alt="Example Spectrum GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+Short Waveform:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif"
        alt="Example Short Waveform GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+Linear Spectrum (dB):
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum-dB.gif"
        alt="Example Spectrum dB GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+Long Waveform:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif"
        alt="Example Long Waveform GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+Stereo Oscilloscope and Mono Polar Oscilloscope:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-osc-github.gif"
        alt="Example Stereo Oscilloscope GIF"
@@ -35,11 +40,13 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        alt="Example Polar Oscilloscope GIF"
        style="max-width: 100%; height: auto; margin: 0px;">
 </div>
+Stereo Polar Oscilloscope (various tunings):
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-stereo.gif"
        alt="Example Stereo Polar Oscilloscope GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+Mono Polar Oscilloscope and Stereo Polar Oscilloscope:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-death.gif"
        alt="Example Polar Oscilloscope (Violent) GIF"
@@ -48,6 +55,7 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        alt="Example Stereo Polar Oscilloscope (Violent) GIF"
        style="max-width: 100%; height: auto; margin: 0px;">
 </div>
+Linear Spectral Balance:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-balance.gif"
        alt="Example Spectral Balance GIF"
