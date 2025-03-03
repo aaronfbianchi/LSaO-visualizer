@@ -48,6 +48,11 @@ Coded to look as **violent**, **responsive**, **snappy** and **rough** as possib
        alt="Example Stereo Polar Oscilloscope (Violent) GIF"
        style="max-width: 100%; height: auto; margin: 0px;">
 </div>
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-balance.gif"
+       alt="Example Spectral Balance GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+</div>
 
 
 Bunch of demo videos
