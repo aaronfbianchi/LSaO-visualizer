@@ -57,9 +57,12 @@ Mono Polar Oscilloscope and Stereo Polar Oscilloscope:
 </div>
 Linear Spectral Balance:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-balance.gif"
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-balance-github.gif"
        alt="Example Spectral Balance GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-recurrence.gif"
+       alt="Example Recurrence Plot GIF"
+       style="max-width: 100%; height: auto; margin: 0px;">
 </div>
 
 
@@ -74,7 +77,7 @@ Bunch of demo videos
 
 Why?
 ---------------------
-This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects, but who wants to install an Adobe product anyway). Once I made this, I decided to also include the other types of visualizers.
+This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects, but who wants to install an Adobe product anyway).
 
 Download
 ---------------------
