@@ -55,7 +55,7 @@ Mono Polar Oscilloscope and Stereo Polar Oscilloscope:
        alt="Example Stereo Polar Oscilloscope (Violent) GIF"
        style="max-width: 100%; height: auto; margin: 0px;">
 </div>
-Linear Spectral Balance:
+Linear Spectral Balance and Recurrence Plot:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-balance-github.gif"
        alt="Example Spectral Balance GIF"
