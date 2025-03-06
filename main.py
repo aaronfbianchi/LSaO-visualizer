@@ -97,7 +97,7 @@ def generate_spectrum(output_name, vidfor, input_audio, audfor, channel,fps, res
     print(f"song {song.shape}")
     print(f"song {song.shape[0]}")
     if song.shape[0] == 2:
-        if channel == "Both (Merged)":
+        if channel == "Both (Merge to mono)":
             audio = np.transpose(np.mean(song, axis = 0))
             print(f"audio {audio.shape}")
         elif channel == "Left":
@@ -271,7 +271,7 @@ def generate_spectrum_dB(output_name, vidfor, input_audio, audfor, channel,fps, 
     print(f"song {song.shape}")
     print(f"song {song.shape[0]}")
     if song.shape[0] == 2:
-        if channel == "Both (Merged)":
+        if channel == "Both (Merge to mono)":
             audio = np.transpose(np.mean(song, axis = 0))
             print(f"audio {audio.shape}")
         elif channel == "Left":
@@ -611,7 +611,7 @@ def generate_waveform(output_name,vidfor,input_audio,audfor,channel,fps_2, res_w
     
     print(f"song {song.shape}")
     if song.shape[0] == 2:
-        if channel == "Both (Merged)":
+        if channel == "Both (Merge to mono)":
             audio = np.transpose(np.mean(song, axis = 0))
             print(f"audio {audio.shape}")
         elif channel == "Left":
@@ -750,7 +750,7 @@ def generate_waveform_long(output_name,vidfor,input_audio,audfor,channel,fps, re
     
     print(f"song {song.shape}")
     if song.shape[0] == 2:
-        if channel == "Both (Merged)":
+        if channel == "Both (Merge to mono)":
             audio = np.transpose(np.mean(song, axis = 0))
             print(f"audio {audio.shape}")
         elif channel == "Left":
@@ -998,7 +998,7 @@ def generate_polar(output_name,vidfor,input_audio,audfor,channel,fps, res_width,
      
     if song.shape[0] == 2:
          
-        if channel == "Both (Merged)":
+        if channel == "Both (Merge to mono)":
             audio = np.mean(song, axis = 0).T
             print(f"audiooooo {audio.shape}")
         elif channel == "Left":
@@ -1283,6 +1283,164 @@ def generate_polar_stereo(output_name,vidfor,input_audio,audfor,fps, res_width, 
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
 
+def generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height, note, threshold, thickness,compression, callback_function):
+    output_name = output_name + vidfor
+    input_audio = input_audio + audfor
+    
+    song, fs = read_audio_samples(input_audio)
+    song = song.T
+     
+    if song.shape[0] == 2:
+         
+        if channel == "Both (Stereo)":
+            audioL = song[0,:].T
+            audioR = song[1,:].T
+            print(f"audioooooL {audioL.shape}")
+            print(f"audioooooR {audioR.shape}")
+        elif channel == "Both (Merge to mono)":
+            audioL = np.mean(song, axis = 0).T
+            audioR = np.mean(song, axis = 0).T
+            print(f"audioooooL {audioL.shape}")
+            print(f"audioooooR {audioR.shape}")
+        elif channel == "Left":
+            audioL = song[0,:].T
+            audioR = song[0,:].T
+        elif channel == "Right":
+            audioL = song[1,:].T
+            audioR = song[1,:].T
+    else:
+        audioL = song.T
+        audioR = song.T
+        print(f"audioL {audioL.shape}")
+        print(f"audioR {audioR.shape}")
+    
+    gmax = np.max([np.max(np.abs(audioL)), np.max(np.abs(audioR))])
+    #print(gmax)
+    audioL = (audioL/gmax).T ##TRANSPOSITION AND NORMALIZATION
+    audioR = (audioR/gmax).T ##TRANSPOSITION AND NORMALIZATION
+    #print(audioL)
+    
+    duration = len(audioL)/fs
+    #note = "C2"
+    freq_tune = note_to_frequency(note)
+    speed = fs/freq_tune  #FLOAT
+    fps_falso = fs/speed  #FLOAT
+    print("yes")
+    size_frame = int(np.round(fs/fps))
+    n_frames_falso = int(np.ceil(len(audioL)/speed))
+    n_frames = round(duration*fps)
+    print("yes")
+    indexes = np.linspace(0, n_frames_falso - 1, n_frames) ## FPS ARE NOW 60
+    indexes2 = [round(x) for x in indexes]
+    print("yes")
+    size_frameL = speed #float 
+    size_frameR = speed #float 
+    print("yes")
+    if size_frameL < res_height: #JUST IN CASE THE HEIGHT OR WIDTH IS BIGGER THEN THE # OF SAMPLES IN THE SEGMENT
+        print(f"size_frameL {size_frameL}")
+        print(f"audioL {audioL.shape}")
+        audioL = signal.resample(audioL, int(len(audioL)*res_height/size_frameL))
+        print(f"audioL {audioL.shape}")
+        audioL = np.clip(audioL,-1,1)
+        size_frameL = res_height
+        print("aja")
+    print("yes")
+    if size_frameR < res_width:
+        print(f"size_frameR {size_frameR}")
+        print(f"audioR {audioR.shape}")
+        audioR = signal.resample(audioR, int(len(audioR)*res_width/size_frameR))
+        print(f"audioR {audioR.shape}")
+        audioR = np.clip(audioR,-1,1)
+        size_frameR = res_width
+        print("aja")
+    print("yes")
+
+    #print(f"audioL {audioL.shape}")
+    #print(f"audioR {audioR.shape}")
+    print(f"n_frames_falso {n_frames_falso}")
+    print(f"n_frames {n_frames}")
+    audioL = np.pad(audioL, (0, int(size_frameL*n_frames_falso) - len(audioL))) ## TO COMPLETE THE LAST FRAME
+    audioR = np.pad(audioR, (0, int(size_frameR*n_frames_falso) - len(audioR))) ## TO COMPLETE THE LAST FRAME
+    print("yesuu")
+    print(size_frameR)
+    print(size_frameL)
+    xaxis = np.linspace(0,res_width - 1,int(size_frameR)).astype(int)
+    print("yes")
+    print(xaxis)
+    yaxis = np.linspace(0,res_height - 1,int(size_frameL)).astype(int)
+    print(yaxis)
+    print("yes")
+    print(indexes2)
+    print(f"xaxis {xaxis.shape}")
+    print(f"yaxis {yaxis.shape}")
+    #print(xaxis)
+    #print(yaxis)
+    cmd = [
+        'ffmpeg',
+        '-y',  # Overwrite output file if it exists
+        '-f', 'rawvideo',
+        '-s', '{}x{}'.format(res_width, res_height),
+        '-pix_fmt', 'gray',  # Use grayscale pixel format
+        '-r', str(fps),  # Frames per second
+        '-i', '-',  # Read input from stdin
+        '-c:v', 'libx264',  # Video codec
+        '-preset', 'medium',  # Encoding speed vs compression ratio
+        '-crf', str(compression),  # Constant Rate Factor (0-51): Lower values mean better quality
+        '-pix_fmt', 'yuv420p',  # Pixel format for compatibility
+        'resources/temporary_file.mp4'
+    ]
+    
+    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    j = 0
+    print("no")
+    for i in indexes2:
+        #print("yes")
+        audioLseg = audioL[round(i*size_frameL) : round(i*size_frameL)+int(size_frameL)]
+        audioRseg = audioR[round(i*size_frameR) : round(i*size_frameR)+int(size_frameR)]
+        #print(audioLseg)
+        #print("yes")
+        print(f"audioLseg {audioLseg.shape}")
+        print(f"audioRseg {audioRseg.shape}")
+        frameData = np.zeros((res_width, res_height), dtype=bool)
+
+        audioLseg = audioLseg[:, np.newaxis]  # Convert to column vector
+        audioRseg = audioRseg[:, np.newaxis]  # Convert to column vector
+        #print(audioLseg)
+        #print(f"audioLseg {audioLseg.shape}")
+        distances = np.abs(audioLseg.T - audioRseg)  # Pairwise absolute differences
+        print(f"distances {distances.shape}")
+        #print("yes")
+        print(f"frameData {frameData.shape}")
+        frameData[xaxis[:, np.newaxis], yaxis] = (distances < threshold)
+
+        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
+        if thickness > 1:
+            for th in range(thickness - 1):
+                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
+                shifted[-1, :] = False ## CLEARS BOTTOM ROW
+                #frameData = (frameData + shifted)
+                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
+                shifted2[:, -1] = False ## CLEARS LAST COLUMN
+                frameData = frameData | shifted | shifted2 
+        
+        frameData = frameData.astype(np.uint8) * 255
+        
+        ffmpeg_process.stdin.write(frameData)
+        j += 1
+        print(f"{j+1}/{n_frames}")
+        callback_function(j+1,n_frames, text_state = False, text_message = " ")
+        
+    ffmpeg_process.stdin.close()
+    ffmpeg_process.wait()
+    
+    callback_function(i,n_frames, text_state = True, text_message = "Joining frames...")
+    convert_vid(input_audio, output_name, vidfor)
+        
+    print(f"Video saved to {output_name}")
+    os.remove("resources/temporary_file.mp4")
+    callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
+    return 0
+
 def note_to_frequency(note):
     if note.lstrip('-').replace('.', '', 1).isdigit():    
         frequency = float(note)
@@ -1404,7 +1562,7 @@ def validate_numeric(value):
 class SpectrumWindow:
     vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
     audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
-    channel_values = ["Both (Merged)", "Left", "Right"]
+    channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -1421,7 +1579,7 @@ class SpectrumWindow:
         self.vidfor = tk.StringVar(value=".mp4")
         self.input_audio = tk.StringVar(value="")
         self.audfor = tk.StringVar(value=".wav")
-        self.channel = tk.StringVar(value="Both (Merged)")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=1920)
         self.res_height = tk.IntVar(value=540)
@@ -1550,7 +1708,7 @@ class SpectrumWindow:
 class SpectrumdBWindow:
     vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
     audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
-    channel_values = ["Both (Merged)", "Left", "Right"]
+    channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -1567,7 +1725,7 @@ class SpectrumdBWindow:
         self.vidfor = tk.StringVar(value=".mp4")
         self.input_audio = tk.StringVar(value="")
         self.audfor = tk.StringVar(value=".wav")
-        self.channel = tk.StringVar(value="Both (Merged)")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=1920)
         self.res_height = tk.IntVar(value=540)
@@ -1810,7 +1968,7 @@ class SpecBalanceWindow:
 class WaveformWindow:
     vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
     audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
-    channel_values = ["Both (Merged)", "Left", "Right"]
+    channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -1825,7 +1983,7 @@ class WaveformWindow:
         self.vidfor = tk.StringVar(value=".mp4")
         self.input_audio = tk.StringVar(value="")
         self.audfor = tk.StringVar(value=".wav")
-        self.channel = tk.StringVar(value="Both (Merged)")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps_2 = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=1920)
         self.res_height = tk.IntVar(value=540)
@@ -1959,7 +2117,7 @@ class WaveformWindow:
 class LongWaveformWindow:
     vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
     audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
-    channel_values = ["Both (Merged)", "Left", "Right"]
+    channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -1974,7 +2132,7 @@ class LongWaveformWindow:
         self.vidfor = tk.StringVar(value=".mp4")
         self.input_audio = tk.StringVar(value="")
         self.audfor = tk.StringVar(value=".wav")
-        self.channel = tk.StringVar(value="Both (Merged)")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=1920)
         self.res_height = tk.IntVar(value=540)
@@ -2195,7 +2353,7 @@ class OscilloscopeWindow:
 class PolarWindow:
     vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
     audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
-    channel_values = ["Both (Merged)", "Left", "Right"]
+    channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -2209,7 +2367,7 @@ class PolarWindow:
         self.vidfor = tk.StringVar(value=".mp4")
         self.input_audio = tk.StringVar(value="")
         self.audfor = tk.StringVar(value=".wav")
-        self.channel = tk.StringVar(value="Both (Merged)")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=720)
         self.res_height = tk.IntVar(value=720)
@@ -2284,6 +2442,24 @@ class PolarWindow:
             if res_width <= 0 or (res_width % 2) != 0 or res_height <= 0 or (res_height % 2) != 0:
                 self.loading_label.config(text=f"Error! Resolution values must be positive even numbers.")
                 error_flag = True
+                
+            if note.lstrip('-').replace('.', '', 1).isdigit():
+                if float(note) <= 0:
+                    self.loading_label.config(text=f"Error! Tuning frequency must be a positive number.")
+                    error_flag = True
+            else:
+                if len(note) == 2:
+                    if not note[0].lower() in 'abcdefg' or not note[1].isdigit():
+                        self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nD#2, Db2, D2, d#2, db2 or d2.")
+                        error_flag = True
+                elif len(note) == 3:
+                    if not note[0].lower() in 'abcdefg' or not (note[1] == "#" or note[1] == "b") or not note[2].isdigit():
+                        self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nD#2, Db2, D2, d#2, db2 or d2.")
+                        error_flag = True
+                else:
+                    self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nD#2, Db2, D2, d#2, db2 or d2.")
+                    error_flag = True    
+            
             if interpolation <= 0 or (interpolation % 1) != 0:
                 self.loading_label.config(text=f"Error! Interpolation must be a positive whole number.")
                 error_flag = True
@@ -2401,6 +2577,24 @@ class PolarStereoWindow:
             if res_width <= 0 or (res_width % 2) != 0 or res_height <= 0 or (res_height % 2) != 0:
                 self.loading_label.config(text=f"Error! Resolution values must be positive even numbers.")
                 error_flag = True
+            
+            if note.lstrip('-').replace('.', '', 1).isdigit():
+                if float(note) <= 0:
+                    self.loading_label.config(text=f"Error! Tuning frequency must be a positive number.")
+                    error_flag = True
+            else:
+                if len(note) == 2:
+                    if not note[0].lower() in 'abcdefg' or not note[1].isdigit():
+                        self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nC#2, Db3, E4, f#5, gb6 or a7.")
+                        error_flag = True
+                elif len(note) == 3:
+                    if not note[0].lower() in 'abcdefg' or not (note[1] == "#" or note[1] == "b") or not note[2].isdigit():
+                        self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nC#2, Db3, E4, f#5, gb6 or a7.")
+                        error_flag = True
+                else:
+                    self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nC#2, Db3, E4, f#5, gb6 or a7.")
+                    error_flag = True
+            
             if interpolation <= 0 or (interpolation % 1) != 0:
                 self.loading_label.config(text=f"Error! Interpolation must be a positive whole number.")
                 error_flag = True
@@ -2431,7 +2625,137 @@ class PolarStereoWindow:
             self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
         self.master.update()  # Update the GUI
 
+class RecurrenceWindow:
+    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
+    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
+    channel_values = ["Both (Merge to mono)", "Both (Stereo)", "Left", "Right"]
+    fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
+    width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Recurrence Plot Visualizer v0.03 by Aaron F. Bianchi")
 
+        # Variables to store user input with default values
+        self.output_name = tk.StringVar(value="output")
+        self.vidfor = tk.StringVar(value=".mp4")
+        self.input_audio = tk.StringVar(value="osc_test")
+        self.audfor = tk.StringVar(value=".wav")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
+        self.fps = tk.DoubleVar(value=60)
+        self.res_width = tk.IntVar(value=720)
+        self.res_height = tk.IntVar(value=720)
+        self.note = tk.StringVar(value="C2")
+        self.threshold = tk.DoubleVar(value=0.05)
+        self.thickness = tk.IntVar(value="1")
+        self.compression = tk.DoubleVar(value=0)
+
+        row_num = 0
+        # Create labels and Entry/Checkbutton widgets for input
+        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
+        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
+        row_num += 1  
+        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
+        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        row_num += 1
+        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        row_num += 1
+        create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
+        row_num += 1
+        create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. 1:1 aspect ratio is recommended. Even numbers.")
+        row_num += 1
+        create_input_widgets(self.master, "Tuning:", self.note, row=row_num, tip="Set a note to tune the oscilloscope to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
+        row_num += 1
+        create_input_widgets(self.master, "Threshold:", self.threshold, row=row_num, tip="Set a threshold. I don't know how to explain it. Just try and see.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        row_num += 1
+        create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
+        row_num += 1
+        
+        # Create a Button to perform the action
+        self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
+        self.action_button.grid(row=row_num, column=1, pady=10)
+        #row_num += 1
+        
+        # Create a Label for the loading message (initially hidden)
+        self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
+        self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
+        self.loading_label.grid_remove()  # Initially hide the loading label
+
+    def perform_action(self):
+        try:
+            # Show loading label during action
+            self.loading_label.grid()
+            self.loading_label.config(fg="blue")
+            self.loading_label.config(text=f"Loading...")
+            self.master.update()  # Force update to show the label
+
+            # Get values from Entry widgets and perform the final action
+            output_name = self.output_name.get()
+            vidfor = self.vidfor.get()
+            input_audio = self.input_audio.get()
+            audfor = self.audfor.get()
+            channel = self.channel.get()
+            fps = self.fps.get()
+            res_width = self.res_width.get()
+            res_height = self.res_height.get()
+            note = self.note.get()
+            threshold = self.threshold.get()
+            thickness = self.thickness.get()
+            compression = self.compression.get()
+            
+            error_flag = False
+            if fps <= 0:
+                self.loading_label.config(text=f"Error! Frame rate must be a positive number.")
+                error_flag = True
+            if res_width <= 0 or (res_width % 2) != 0 or res_height <= 0 or (res_height % 2) != 0:
+                self.loading_label.config(text=f"Error! Resolution values must be positive even numbers.")
+                error_flag = True
+                
+            if note.lstrip('-').replace('.', '', 1).isdigit():
+                if float(note) <= 0:
+                    self.loading_label.config(text=f"Error! Tuning frequency must be a positive number.")
+                    error_flag = True
+            else:
+                if len(note) == 2:
+                    if not note[0].lower() in 'abcdefg' or not note[1].isdigit():
+                        self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nD#2, Db2, D2, d#2, db2 or d2.")
+                        error_flag = True
+                elif len(note) == 3:
+                    if not note[0].lower() in 'abcdefg' or not (note[1] == "#" or note[1] == "b") or not note[2].isdigit():
+                        self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nD#2, Db2, D2, d#2, db2 or d2.")
+                        error_flag = True
+                else:
+                    self.loading_label.config(text=f"Error! Tuning must be written in one of the following formats:\nD#2, Db2, D2, d#2, db2 or d2.")
+                    error_flag = True
+
+            if thickness <= 0 or (thickness % 1) != 0:
+                self.loading_label.config(text=f"Error! Thickness must be a positive whole number.")
+                error_flag = True
+            if compression < 0:
+                self.loading_label.config(text=f"Error! Compression must be a non-negative number.")
+                error_flag = True
+                
+            if error_flag == True:
+                self.loading_label.config(fg="Red")
+                self.master.update()  # Force update to show the label
+            else:
+                # Do something with the input values (replace this with your final action)
+                generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height, note, threshold, thickness,compression,self.update_loading_label)
+
+        except Exception:
+            #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
+            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(fg="Red")
+            self.master.update()  # Force update to show the label
+            
+    def update_loading_label(self, progress, total, text_state, text_message):       
+        if text_state == True:
+            self.loading_label.config(text=text_message)
+        else:
+            self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
+        self.master.update()  # Update the GUI
 
 #################################################
 ################## MAIN WINDOW ##################
@@ -2467,11 +2791,15 @@ def option7():
     
 def option8():
     spec_balance_window = tk.Toplevel(root)
-    SpecBalanceWindow(spec_balance_window)
+    SpecBalanceWindow(spec_balance_window) 
+       
+def option9():
+    recurrence_window = tk.Toplevel(root)
+    RecurrenceWindow(recurrence_window)
 
 # Main window
 root = tk.Tk()
-root.title("LSaO Visualizer v0.69")
+root.title("LSaO Visualizer v0.72")
 
 # Set initial size (width x height)
 #root.geometry("600x300")
@@ -2484,13 +2812,14 @@ image4 = tk.PhotoImage(file="resources/img_osc.png")
 image6 = tk.PhotoImage(file="resources/img_polar.png")
 image7 = tk.PhotoImage(file="resources/img_polar_stereo.png")
 image8 = tk.PhotoImage(file="resources/img_spec_balance.png")
+image9 = tk.PhotoImage(file="resources/img_recurrence.png")
 
 row_num = 0
 # Initial text label
-initial_text = "Usage:\n- Place your audio file in the same folder this executable is.\n- The generated video will be exported to the same folder. [WILL OVERWRITE]"
+initial_text = "Usage:\n- Place your audio file in the same folder this executable is.\n- The generated video will be exported to the\n  same folder. [WILL OVERWRITE]"
 if os.name == 'nt':
     print("Running on Windows")
-    initial_text = initial_text + "\n- FFmpeg needs to be manually installed and added to PATH.\n- The default Windows video player isn't going to play\n   the generated videos correctly. Try a better video player."
+    initial_text = initial_text + "\n- FFmpeg needs to be manually installed and added to PATH.\n- The default Windows video player isn't going to play the generated videos correctly. Try a\n  better video player."
 elif os.name == 'posix':
     print("Running on Linux or Unix-like system")
     initial_text = initial_text + "\n- FFmpeg is required."
@@ -2514,30 +2843,35 @@ button_option5.grid(row=row_num, column=1, padx=0, pady=0, sticky="w")
 button_option2 = tk.Button(root, image=image2, text="Short Waveform", compound=tk.BOTTOM, command=option2, width=130, height=130)
 button_option2.grid(row=row_num, column=2, padx=0, pady=0, sticky="w")
 
+row_num += 1
 # Button for option 3
 button_option3 = tk.Button(root, image=image3, text="Long Waveform", compound=tk.BOTTOM, command=option3, width=130, height=130)
-button_option3.grid(row=row_num, column=3, padx=0, pady=0, sticky="w")
+button_option3.grid(row=row_num, column=0, padx=0, pady=0, sticky="w")
 
-row_num += 1
 # Button for option 4
 button_option4 = tk.Button(root, image=image4, text="Oscilloscope", compound=tk.BOTTOM, command=option4, width=130, height=130)
-button_option4.grid(row=row_num, column=0, padx=0, pady=0, sticky="w")
+button_option4.grid(row=row_num, column=1, padx=0, pady=0, sticky="w")
 
 # Button for option 6
 button_option6 = tk.Button(root, image=image6, text="Polar (Mono)", compound=tk.BOTTOM, command=option6, width=130, height=130)
-button_option6.grid(row=row_num, column=1, padx=0, pady=0, sticky="w")
+button_option6.grid(row=row_num, column=2, padx=0, pady=0, sticky="w")
 
+row_num += 1
 # Button for option 7
 button_option7 = tk.Button(root, image=image7, text="Polar (Stereo)", compound=tk.BOTTOM, command=option7, width=130, height=130)
-button_option7.grid(row=row_num, column=2, padx=0, pady=0, sticky="w")
+button_option7.grid(row=row_num, column=0, padx=0, pady=0, sticky="w")
 
 # Button for option 8
 button_option8 = tk.Button(root, image=image8, text="Spectral Balance", compound=tk.BOTTOM, command=option8, width=130, height=130)
-button_option8.grid(row=row_num, column=3, padx=0, pady=0, sticky="w")
+button_option8.grid(row=row_num, column=1, padx=0, pady=0, sticky="w")
+
+# Button for option 9
+button_option9 = tk.Button(root, image=image9, text="Recurrence Plot", compound=tk.BOTTOM, command=option9, width=130, height=130)
+button_option9.grid(row=row_num, column=2, padx=0, pady=0, sticky="w")
 
 row_num += 1
 # Credits label
-credits_label = tk.Label(root, text="© 2025 Aaron F. Bianchi - Linear Spectrum and Oscilloscope Visualizer", font=("Helvetica", 10), fg="blue", justify='center')
+credits_label = tk.Label(root, text="© 2025 Aaron F. Bianchi - LSaO Visualizer", font=("Helvetica", 10), fg="blue", justify='center')
 credits_label.grid(row=row_num, column=0, columnspan=5, pady=5, sticky="ew") 
 credits_label.bind("<Button-1>", lambda e: webbrowser.open("aaronfbianchi.github.io"))
 
