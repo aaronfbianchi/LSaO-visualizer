@@ -1399,18 +1399,18 @@ def generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_w
         audioRseg = audioR[round(i*size_frameR) : round(i*size_frameR)+int(size_frameR)]
         #print(audioLseg)
         #print("yes")
-        print(f"audioLseg {audioLseg.shape}")
-        print(f"audioRseg {audioRseg.shape}")
+        #print(f"audioLseg {audioLseg.shape}")
+        #print(f"audioRseg {audioRseg.shape}")
         frameData = np.zeros((res_width, res_height), dtype=bool)
 
-        audioLseg = audioLseg[:, np.newaxis]  # Convert to column vector
-        audioRseg = audioRseg[:, np.newaxis]  # Convert to column vector
+        audioLseg = audioLseg[:, np.newaxis]
+        audioRseg = audioRseg[:, np.newaxis]
         #print(audioLseg)
         #print(f"audioLseg {audioLseg.shape}")
-        distances = np.abs(audioLseg.T - audioRseg)  # Pairwise absolute differences
-        print(f"distances {distances.shape}")
+        distances = np.abs(audioLseg.T - audioRseg)
+        #print(f"distances {distances.shape}")
         #print("yes")
-        print(f"frameData {frameData.shape}")
+        #print(f"frameData {frameData.shape}")
         frameData[xaxis[:, np.newaxis], yaxis] = (distances < threshold)
 
         #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
@@ -2639,7 +2639,7 @@ class RecurrenceWindow:
         # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output")
         self.vidfor = tk.StringVar(value=".mp4")
-        self.input_audio = tk.StringVar(value="osc_test")
+        self.input_audio = tk.StringVar(value="")
         self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
@@ -2652,6 +2652,9 @@ class RecurrenceWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
+        warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
+        warning_label.grid(row=row_num, column=0, columnspan=3, padx=(45, 5), pady=(5, 0), sticky="w")
+        row_num += 1
         create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
         create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
         row_num += 1  
@@ -2664,11 +2667,11 @@ class RecurrenceWindow:
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. 1:1 aspect ratio is recommended. Even numbers.")
         row_num += 1
-        create_input_widgets(self.master, "Tuning:", self.note, row=row_num, tip="Set a note to tune the oscilloscope to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
+        create_input_widgets(self.master, "Tuning:", self.note, row=row_num, tip="Set a note to tune the recurrence plot to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
         row_num += 1
-        create_input_widgets(self.master, "Threshold:", self.threshold, row=row_num, tip="Set a threshold. I don't know how to explain it. Just try and see.")
+        create_input_widgets(self.master, "Threshold:", self.threshold, row=row_num, tip="Higher values will increase the amount of white.")
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the whole thing one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -2819,7 +2822,7 @@ row_num = 0
 initial_text = "Usage:\n- Place your audio file in the same folder this executable is.\n- The generated video will be exported to the\n  same folder. [WILL OVERWRITE]"
 if os.name == 'nt':
     print("Running on Windows")
-    initial_text = initial_text + "\n- FFmpeg needs to be manually installed and added to PATH.\n- The default Windows video player isn't going to play the generated videos correctly. Try a\n  better video player."
+    initial_text = initial_text + "\n- FFmpeg needs to be manually installed and added to PATH.\n- The default Windows video player isn't going to play the generated\n  videos correctly. Try a better video player."
 elif os.name == 'posix':
     print("Running on Linux or Unix-like system")
     initial_text = initial_text + "\n- FFmpeg is required."
