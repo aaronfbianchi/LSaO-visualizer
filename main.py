@@ -13,6 +13,7 @@ import subprocess
 import os
 from scipy.signal import butter, filtfilt#, sosfreqz, sosfreqresp, sos2tf, sosfilter
 import webbrowser
+from PIL import Image, ImageTk
 
 #####################################################
 ## LINEAR SPRECTRUM VISUALIZER by Aarón F. Bianchi ##
@@ -90,7 +91,7 @@ def generate_spectrum(output_name, vidfor, input_audio, audfor, channel,fps, res
     input_audio = input_audio + audfor
 
     song, fs = read_audio_samples(input_audio)
-    song = song.T
+    song = song.T.astype(np.float16)
     
     #oversampling = 8 ## SMOOTHING IN THE CURVE (INTEGER)
     #t_smoothing = 1 ## TIME SMOOTHING (INTEGER)
@@ -181,7 +182,7 @@ def generate_spectrum(output_name, vidfor, input_audio, audfor, channel,fps, res
     if style == "Just Points": ## DRAWS DOTS IN SCREEN
         points = True
         filled = False
-    elif style == "Curve (~1.5x as slow)": ## DRAWS LINE IN SCREEN
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
         points = False
         filled = False
     elif style == "Filled Spectrum": ## DRAWS FILLED SPECTRUM
@@ -264,7 +265,7 @@ def generate_spectrum_dB(output_name, vidfor, input_audio, audfor, channel,fps, 
     input_audio = input_audio + audfor
 
     song, fs = read_audio_samples(input_audio)
-    song = song.T
+    song = song.T.astype(np.float16)
     
     #oversampling = 8 ## SMOOTHING IN THE CURVE (INTEGER)
     #t_smoothing = 1 ## TIME SMOOTHING (INTEGER)
@@ -343,7 +344,7 @@ def generate_spectrum_dB(output_name, vidfor, input_audio, audfor, channel,fps, 
     if style == "Just Points": ## DRAWS DOTS IN SCREEN
         points = True
         filled = False
-    elif style == "Curve (~1.5x as slow)": ## DRAWS LINE IN SCREEN
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
         points = False
         filled = False
     elif style == "Filled Spectrum": ## DRAWS FILLED SPECTRUM
@@ -426,7 +427,7 @@ def generate_spec_balance(output_name, vidfor, input_audio, audfor,fps, res_widt
     input_audio = input_audio + audfor
 
     song, fs = read_audio_samples(input_audio)
-    song = song.T
+    song = song.T.astype(np.float16)
     
     #oversampling = 8 ## SMOOTHING IN THE CURVE (INTEGER)
     #t_smoothing = 1 ## TIME SMOOTHING (INTEGER)
@@ -516,7 +517,7 @@ def generate_spec_balance(output_name, vidfor, input_audio, audfor,fps, res_widt
     if style == "Just Points": ## DRAWS DOTS IN SCREEN
         points = True
         filled = False
-    elif style == "Curve (~1.5x as slow)": ## DRAWS LINE IN SCREEN
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
         points = False
         filled = False
     elif style == "Filled Spectrum": ## DRAWS FILLED SPECTRUM
@@ -607,7 +608,7 @@ def generate_waveform(output_name,vidfor,input_audio,audfor,channel,fps_2, res_w
     input_audio = input_audio + audfor
     
     song, fs = read_audio_samples(input_audio)
-    song = song.T
+    song = song.T.astype(np.float16)
     
     print(f"song {song.shape}")
     if song.shape[0] == 2:
@@ -643,7 +644,7 @@ def generate_waveform(output_name,vidfor,input_audio,audfor,channel,fps_2, res_w
     if style == "Just Points": ## DRAWS DOTS IN SCREEN
         points = True
         filled = False
-    elif style == "Curve (~1.5x as slow)": ## DRAWS LINE IN SCREEN
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
         points = False
         filled = False
     elif style == "Filled Waveform": ## DRAWS FILLED SPECTRUM
@@ -746,7 +747,7 @@ def generate_waveform_long(output_name,vidfor,input_audio,audfor,channel,fps, re
     input_audio = input_audio + audfor
     
     song, fs = read_audio_samples(input_audio)
-    song = song.T
+    song = song.T.astype(np.float16)
     
     print(f"song {song.shape}")
     if song.shape[0] == 2:
@@ -775,7 +776,7 @@ def generate_waveform_long(output_name,vidfor,input_audio,audfor,channel,fps, re
     if style == "Just Points": ## DRAWS DOTS IN SCREEN
         points = True
         filled = False
-    elif style == "Curve (~1.5x as slow)": ## DRAWS LINE IN SCREEN
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
         points = False
         filled = False
     elif style == "Filled Waveform": ## DRAWS FILLED SPECTRUM
@@ -875,7 +876,7 @@ def generate_oscilloscope(output_name,vidfor,input_audio,audfor,fps, res_width, 
     
     print(f"shape song {song.shape}")
     
-    song = song/np.max(np.max(abs(abs(song)))) ##TRANSPOSITION AND NORMALIZATION
+    song = song/np.max(np.max(abs(abs(song)))).astype(np.float16) ##TRANSPOSITION AND NORMALIZATION
     song = np.clip(song,-1,1)
     
     audioL = song[:,0].astype(np.float16)
@@ -994,7 +995,7 @@ def generate_polar(output_name,vidfor,input_audio,audfor,channel,fps, res_width,
     input_audio = input_audio + audfor
     
     song, fs = read_audio_samples(input_audio)
-    song = song.T
+    song = song.T.astype(np.float16)
      
     if song.shape[0] == 2:
          
@@ -1144,7 +1145,7 @@ def generate_polar_stereo(output_name,vidfor,input_audio,audfor,fps, res_width, 
     input_audio = input_audio + audfor
     
     song, fs = read_audio_samples(input_audio)
-    song = song.T
+    song = song.T.astype(np.float16)
     song = song/np.max(np.max(abs(abs(song)))) ##TRANSPOSITION AND NORMALIZATION
     song = np.clip(song,-1,1)
     song = song + offset ###################################################ADDING OFFSET
@@ -1288,7 +1289,7 @@ def generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_w
     input_audio = input_audio + audfor
     
     song, fs = read_audio_samples(input_audio)
-    song = song.T
+    song = song.T.astype(np.float16)
      
     if song.shape[0] == 2:
          
@@ -1411,8 +1412,11 @@ def generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_w
         #print(f"distances {distances.shape}")
         #print("yes")
         #print(f"frameData {frameData.shape}")
-        frameData[xaxis[:, np.newaxis], yaxis] = (distances < threshold)
-
+        if threshold >= 0:
+            frameData[xaxis[:, np.newaxis], yaxis] = (distances < threshold)
+        else:
+            frameData[xaxis[:, np.newaxis], yaxis] = ~(distances < -threshold)
+        #print("yes")
         #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
         if thickness > 1:
             for th in range(thickness - 1):
@@ -1440,6 +1444,318 @@ def generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_w
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+     
+def generate_poincare(output_name,vidfor,input_audio,audfor,channel ,fps, res_width, res_height, delay, interpolation,thickness,compression, callback_function):
+    output_name = output_name + vidfor
+    input_audio = input_audio + audfor
+    
+    song, fs = read_audio_samples(input_audio)
+    song = song.T.astype(np.float16)
+    song = song/np.max(np.max(abs(abs(song)))) ##TRANSPOSITION AND NORMALIZATION
+    song = np.clip(song,-1,1)
+    
+    if song.shape[0] == 2:
+         
+        if channel == "Both (Merge to mono)":
+            audio = np.mean(song, axis = 0).T
+            print(f"audiooooo {audio.shape}")
+        elif channel == "Left":
+            audio = song[0,:].T
+        elif channel == "Right":
+            audio = song[1,:].T
+    else:
+        audio = song.T
+        print(f"audio {audio.shape}")
+    
+    print(f"shape audio {audio.shape}")
+    
+    audioL = np.concatenate((audio[delay:].astype(np.float16), audio[:delay].astype(np.float16))).astype(np.float16)
+    audioR = -audio.astype(np.float16)
+    
+    size_frame = int(np.round(fs/fps))
+    n_frames = int(np.ceil(len(audioL)/size_frame))
+     
+    audioL = np.pad(audioL, (0, int(size_frame*n_frames) - len(audioL))) ## TO COMPLETE THE LAST FRAME
+    audioR = np.pad(audioR, (0, int(size_frame*n_frames) - len(audioR))) ## TO COMPLETE THE LAST FRAME
+    print(f"shape audioL {audioL.shape}")
+    
+    extra_margin = 50
+    audioL = np.pad(audioL,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audioR = np.pad(audioR,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    print(f"shape audioL {audioL.shape}")
+    print(" ")
+    audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
+    audioRShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
+    print(f"shape audioLShaped {audioLShaped.shape}")
+    print(" ")
+    for i in range(n_frames):
+        audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame + extra_margin*2]
+        audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame + extra_margin*2]
+    print(f"shape audioLShaped {audioLShaped.shape}")
+    print(f"shape audioRShaped {audioRShaped.shape}")
+    print(" ")
+    audioLInterp = np.zeros((audioLShaped.shape[0],audioLShaped.shape[1]*interpolation)).astype(np.float16)
+    audioRInterp = np.zeros((audioRShaped.shape[0],audioRShaped.shape[1]*interpolation)).astype(np.float16)
+    print(f"audioLInterp {audioLInterp.shape}")
+    print(f"audioRInterp {audioRInterp.shape}")
+    if interpolation > 1:
+        print(" ")
+        callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
+        print(" ")
+        audioLInterp = signal.resample(audioLShaped, audioLShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
+        audioRInterp = signal.resample(audioRShaped, audioRShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
+        print(f"audioLInterp {audioLInterp.shape}")
+        print(f"audioRInterp {audioRInterp.shape}")
+        fs = fs*interpolation
+        print(f"fs {fs}")
+        size_frame = size_frame*interpolation
+    else:
+        audioLInterp = audioLShaped.astype(np.float16)
+        audioRInterp = audioRShaped.astype(np.float16)
+    callback_function(-1,-1, text_state = True, text_message = "Loading...")
+    
+    audioLInterp = audioLInterp[:, extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    audioRInterp = audioRInterp[:, extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    print(f"audioLInterp {audioLInterp.shape}")
+    print(f"audioRInterp {audioRInterp.shape}")
+    
+    audioLInterp = ((audioLInterp*32768 + 32768) * (res_height-1) / (65535)).astype(np.int16)
+    audioRInterp = ((audioRInterp*32768 + 32768) * (res_width-1) / (65535)).astype(np.int16)
+    print(f"audioLInterp {audioLInterp.shape}")
+    print(f"audioRInterp {audioRInterp.shape}")
+    
+    audioLInterp = np.clip(audioLInterp,0,res_height-1).astype(np.int16)
+    audioRInterp = np.clip(audioRInterp,0,res_width-1).astype(np.int16)
+    print(f"audioLInterp {audioLInterp.shape}")
+    print(f"audioRInterp {audioRInterp.shape}")
+      
+    cmd = [
+        'ffmpeg',
+        '-y',  # Overwrite output file if it exists
+        '-f', 'rawvideo',
+        '-s', '{}x{}'.format(res_width, res_height),
+        '-pix_fmt', 'gray',  # Use grayscale pixel format
+        '-r', str(fps),  # Frames per second
+        '-i', '-',  # Read input from stdin
+        '-c:v', 'libx264',  # Video codec
+        '-preset', 'medium',  # Encoding speed vs compression ratio
+        '-crf', str(compression),  # Constant Rate Factor (0-51): Lower values mean better quality
+        '-pix_fmt', 'yuv420p',  # Pixel format for compatibility
+        'resources/temporary_file.mp4'
+    ]
+    
+    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+
+    # Generate and save each frame as an image
+    for i in range(n_frames):
+        frameData = np.zeros((res_height, res_width), dtype=bool)
+
+        for m in range(size_frame):
+            frameData[audioLInterp[i,m],audioRInterp[i,m]] = True
+
+        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
+        if thickness > 1:
+            for th in range(thickness - 1):
+                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
+                shifted[-1, :] = False ## CLEARS BOTTOM ROW
+                #frameData = (frameData + shifted)
+                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
+                shifted2[:, -1] = False ## CLEARS LAST COLUMN
+                frameData = frameData | shifted | shifted2 
+        
+        frameData = frameData.astype(np.uint8) * 255
+        
+        ffmpeg_process.stdin.write(frameData)
+        print(f"{i+1}/{n_frames}")
+        callback_function(i,n_frames, text_state = False, text_message = " ")
+        
+    ffmpeg_process.stdin.close()
+    ffmpeg_process.wait()
+    
+    callback_function(i,n_frames, text_state = True, text_message = "Joining frames...")
+    convert_vid(input_audio, output_name, vidfor)
+        
+    print(f"Video saved to {output_name}")
+    os.remove("resources/temporary_file.mp4")
+    callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
+    return 0
+    
+def generate_delay_embed(output_name,vidfor,input_audio,audfor,channel ,fps, res_width, res_height, delay1,delay2, beta_p, beta_s, alfa_p, alfa_s,interpolation,thickness,compression, callback_function):
+    output_name = output_name + vidfor
+    input_audio = input_audio + audfor
+    
+    song, fs = read_audio_samples(input_audio)
+    song = song.T.astype(np.float16)
+    song = song/np.max(np.max(abs(abs(song)))) ##TRANSPOSITION AND NORMALIZATION
+    song = np.clip(song,-1,1)
+    
+    if song.shape[0] == 2:
+        if channel == "Both (Stereo)":
+            audio0 = -np.mean(song, axis = 0).T.astype(np.float16)
+            audio1 = np.concatenate((song[0,delay1:].astype(np.float16), song[0,:delay1].astype(np.float16))).T.astype(np.float16)
+            audio2 = np.concatenate((song[1,delay2:].astype(np.float16), song[1,:delay2].astype(np.float16))).T.astype(np.float16)
+        elif channel == "Both (Merge to mono)":
+            audio0 = -np.mean(song, axis = 0).T.astype(np.float16)
+            audio1 = np.concatenate((audio0[delay1:].astype(np.float16), audio0[:delay1].astype(np.float16))).astype(np.float16)
+            audio2 = np.concatenate((audio0[delay2:].astype(np.float16), audio0[:delay2].astype(np.float16))).astype(np.float16)
+        elif channel == "Left":
+            audio0 = -song[0,:].T.astype(np.float16)
+            audio1 = np.concatenate((audio0[delay1:].astype(np.float16), audio0[:delay1].astype(np.float16))).astype(np.float16)
+            audio2 = np.concatenate((audio0[delay2:].astype(np.float16), audio0[:delay2].astype(np.float16))).astype(np.float16)
+        elif channel == "Right":
+            audio0 = -song[1,:].T.astype(np.float16)
+            audio1 = np.concatenate((audio0[delay1:].astype(np.float16), audio0[:delay1].astype(np.float16))).astype(np.float16)
+            audio2 = np.concatenate((audio0[delay2:].astype(np.float16), audio0[:delay2].astype(np.float16))).astype(np.float16)
+    else:
+        audio0 = -song.T.astype(np.float16)
+        audio1 = np.concatenate((audio0[delay1:].astype(np.float16), audio0[:delay1].astype(np.float16))).astype(np.float16)
+        audio2 = np.concatenate((audio0[delay2:].astype(np.float16), audio0[:delay2].astype(np.float16))).astype(np.float16)
+  
+    size_frame = int(np.round(fs/fps))
+    n_frames = int(np.ceil(len(audio1)/size_frame))
+    
+    audio2 = np.pad(audio2, (0, int(size_frame*n_frames) - len(audio2))) ## TO COMPLETE THE LAST FRAME
+    audio1 = np.pad(audio1, (0, int(size_frame*n_frames) - len(audio1))) ## TO COMPLETE THE LAST FRAME
+    audio0 = np.pad(audio0, (0, int(size_frame*n_frames) - len(audio0))) ## TO COMPLETE THE LAST FRAME
+    print(f"shape audio1 {audio1.shape}")
+    
+    extra_margin = 50
+    audio2 = np.pad(audio2,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audio1 = np.pad(audio1,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audio0 = np.pad(audio0,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    print(f"shape audio1 {audio1.shape}")
+    print(" ")
+    audio2Shaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
+    audio1Shaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
+    audio0Shaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
+    print(f"shape audio1Shaped {audio1Shaped.shape}")
+    print(" ")
+    for i in range(n_frames):
+        audio2Shaped[i,:] = audio2[i*size_frame : (i+1)*size_frame + extra_margin*2]
+        audio1Shaped[i,:] = audio1[i*size_frame : (i+1)*size_frame + extra_margin*2]
+        audio0Shaped[i,:] = audio0[i*size_frame : (i+1)*size_frame + extra_margin*2]
+    print(f"shape audio1Shaped {audio1Shaped.shape}")
+    print(f"shape audio0Shaped {audio0Shaped.shape}")
+    print(" ")
+    audio2Interp = np.zeros((audio2Shaped.shape[0],audio2Shaped.shape[1]*interpolation)).astype(np.float16)
+    audio1Interp = np.zeros((audio1Shaped.shape[0],audio1Shaped.shape[1]*interpolation)).astype(np.float16)
+    audio0Interp = np.zeros((audio0Shaped.shape[0],audio0Shaped.shape[1]*interpolation)).astype(np.float16)
+    print(f"audio1Interp {audio1Interp.shape}")
+    print(f"audio0Interp {audio0Interp.shape}")
+    if interpolation > 1:
+        print(" ")
+        callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
+        print(" ")
+        audio2Interp = signal.resample(audio2Shaped, audio2Shaped.shape[1]*interpolation, axis = 1).astype(np.float16)
+        audio1Interp = signal.resample(audio1Shaped, audio1Shaped.shape[1]*interpolation, axis = 1).astype(np.float16)
+        audio0Interp = signal.resample(audio0Shaped, audio0Shaped.shape[1]*interpolation, axis = 1).astype(np.float16)
+        print(f"audio1Interp {audio1Interp.shape}")
+        print(f"audio0Interp {audio0Interp.shape}")
+        fs = fs*interpolation
+        print(f"fs {fs}")
+        size_frame = size_frame*interpolation
+    else:
+        audio2Interp = audio2Shaped.astype(np.float16)
+        audio1Interp = audio1Shaped.astype(np.float16)
+        audio0Interp = audio0Shaped.astype(np.float16)
+    callback_function(-1,-1, text_state = True, text_message = "Loading...")
+    
+    audio2Interp = audio2Interp[:, extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    audio1Interp = audio1Interp[:, extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    audio0Interp = audio0Interp[:, extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    print(f"audio1Interp {audio1Interp.shape}")
+    print(f"audio0Interp {audio0Interp.shape}")
+    
+    #audio1Interp = ((audio1Interp*32768 + 32768) * (res_height-1) / (65535)).astype(np.int16)
+    #audio0Interp = ((audio0Interp*32768 + 32768) * (res_width-1) / (65535)).astype(np.int16)
+    #print(f"audio1Interp {audio1Interp.shape}")
+    #print(f"audio0Interp {audio0Interp.shape}")
+    
+    #audio1Interp = np.clip(audio1Interp,0,res_height-1).astype(np.int16)
+    #audio0Interp = np.clip(audio0Interp,0,res_width-1).astype(np.int16)
+    #print(f"audio1Interp {audio1Interp.shape}")
+    #print(f"audio0Interp {audio0Interp.shape}")
+      
+    cmd = [
+        'ffmpeg',
+        '-y',  # Overwrite output file if it exists
+        '-f', 'rawvideo',
+        '-s', '{}x{}'.format(res_width, res_height),
+        '-pix_fmt', 'gray',  # Use grayscale pixel format
+        '-r', str(fps),  # Frames per second
+        '-i', '-',  # Read input from stdin
+        '-c:v', 'libx264',  # Video codec
+        '-preset', 'medium',  # Encoding speed vs compression ratio
+        '-crf', str(compression),  # Constant Rate Factor (0-51): Lower values mean better quality
+        '-pix_fmt', 'yuv420p',  # Pixel format for compatibility
+        'resources/temporary_file.mp4'
+    ]
+    
+    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    
+    beta = beta_p/180*np.pi
+    alfa = alfa_p/180*np.pi
+    # Generate and save each frame as an image
+    for i in range(n_frames):
+        frameData = np.zeros((res_height, res_width), dtype=bool)
+        beta += 2*np.pi/fps*beta_s
+        alfa += 2*np.pi/fps*alfa_s
+        x_coo, y_coo = rotate_and_project(audio0Interp[i],audio1Interp[i],audio2Interp[i],alfa,beta,res_width,res_height)
+        for m in range(size_frame):
+            frameData[int(y_coo[m]), int(x_coo[m])] = True
+        if thickness > 1:
+            for th in range(thickness - 1):
+                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
+                shifted[-1, :] = False ## CLEARS BOTTOM ROW
+                #frameData = (frameData + shifted)
+                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
+                shifted2[:, -1] = False ## CLEARS LAST COLUMN
+                frameData = frameData | shifted | shifted2 
+        
+        frameData = frameData.astype(np.uint8) * 255
+        
+        ffmpeg_process.stdin.write(frameData)
+        print(f"{i+1}/{n_frames}")
+        callback_function(i,n_frames, text_state = False, text_message = " ")
+        
+    ffmpeg_process.stdin.close()
+    ffmpeg_process.wait()
+    
+    callback_function(i,n_frames, text_state = True, text_message = "Joining frames...")
+    convert_vid(input_audio, output_name, vidfor)
+        
+    print(f"Video saved to {output_name}")
+    os.remove("resources/temporary_file.mp4")
+    callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
+    return 0
+
+def rotate_and_project(a0, a1, a2, alpha, beta, W, H):
+    P = np.vstack((a0, a1, a2)) 
+
+    Ry = np.array([
+        [np.cos(alpha), 0, np.sin(alpha)],
+        [0, 1, 0],
+        [-np.sin(alpha), 0, np.cos(alpha)]
+    ])
+
+    Rx = np.array([
+        [1, 0, 0],
+        [0, np.cos(beta), -np.sin(beta)],
+        [0, np.sin(beta), np.cos(beta)]
+    ])
+
+    R = Rx @ Ry
+    Protated = R @ P 
+
+    x2D, y2D = Protated[0], Protated[1]
+
+    x_coo = (x2D*W/3 + W/2).astype(int)
+    y_coo = (y2D*H/3 + H/2).astype(int)
+
+    x_coo = np.clip(x_coo, 0, W - 1).astype(int)
+    y_coo = np.clip(y_coo, 0, H - 1).astype(int)
+
+    return x_coo, y_coo
 
 def note_to_frequency(note):
     if note.lstrip('-').replace('.', '', 1).isdigit():    
@@ -1568,7 +1884,7 @@ class SpectrumWindow:
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     xlow_values = [1,20,300]
     xhigh_values = [600,1000,2000,5000,13000,20000]
-    style_values = ["Just Points", "Curve (~1.5x as slow)", "Filled Spectrum"]
+    style_values = ["Just Points", "Curve", "Filled Spectrum"]
 
     def __init__(self, master):
         self.master = master
@@ -1714,7 +2030,7 @@ class SpectrumdBWindow:
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     xlow_values = [1,20,300]
     xhigh_values = [600,1000,2000,5000,13000,20000]
-    style_values = ["Just Points", "Curve (~1.5x as slow)", "Filled Spectrum"]
+    style_values = ["Just Points", "Curve", "Filled Spectrum"]
 
     def __init__(self, master):
         self.master = master
@@ -1848,7 +2164,7 @@ class SpecBalanceWindow:
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     xlow_values = [1,20,300]
     xhigh_values = [600,1000,2000,5000,13000,20000]
-    style_values = ["Just Points", "Curve (~1.5x as slow)", "Filled Spectrum"]
+    style_values = ["Just Points", "Curve", "Filled Spectrum"]
 
     def __init__(self, master):
         self.master = master
@@ -1865,7 +2181,7 @@ class SpecBalanceWindow:
         self.t_smoothing = tk.IntVar(value=1)
         self.xlow = tk.IntVar(value=1)
         self.xhigh = tk.IntVar(value=13000)
-        self.style = tk.StringVar(value="Curve (~1.5x as slow)")
+        self.style = tk.StringVar(value="Curve")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
@@ -1972,7 +2288,7 @@ class WaveformWindow:
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
-    style_values = ["Just Points", "Curve (~1.5x as slow)", "Filled Waveform"]
+    style_values = ["Just Points", "Curve", "Filled Waveform"]
 
     def __init__(self, master):
         self.master = master
@@ -1989,7 +2305,7 @@ class WaveformWindow:
         self.res_height = tk.IntVar(value=540)
         self.note = tk.StringVar(value="C2")
         self.window_size = tk.IntVar(value=3000)
-        self.style = tk.StringVar(value="Curve (~1.5x as slow)")
+        self.style = tk.StringVar(value="Curve")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
@@ -2121,7 +2437,7 @@ class LongWaveformWindow:
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
-    style_values = ["Just Points", "Curve (~1.5x as slow)", "Filled Waveform"]
+    style_values = ["Just Points", "Curve", "Filled Waveform"]
 
     def __init__(self, master):
         self.master = master
@@ -2137,7 +2453,7 @@ class LongWaveformWindow:
         self.res_width = tk.IntVar(value=1920)
         self.res_height = tk.IntVar(value=540)
         self.window_size = tk.IntVar(value=400000)
-        self.style = tk.StringVar(value="Curve (~1.5x as slow)")
+        self.style = tk.StringVar(value="Curve")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
@@ -2634,7 +2950,7 @@ class RecurrenceWindow:
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     def __init__(self, master):
         self.master = master
-        self.master.title("Recurrence Plot Visualizer v0.03 by Aaron F. Bianchi")
+        self.master.title("Recurrence Plot Visualizer v0.04 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output")
@@ -2653,7 +2969,7 @@ class RecurrenceWindow:
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
         warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
-        warning_label.grid(row=row_num, column=0, columnspan=3, padx=(45, 5), pady=(5, 0), sticky="w")
+        warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
         row_num += 1
         create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
         create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
@@ -2759,7 +3075,289 @@ class RecurrenceWindow:
         else:
             self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
         self.master.update()  # Update the GUI
+        
+class PoincareWindow:
+    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
+    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
+    channel_values = ["Both (Merge to mono)", "Left", "Right"]
+    fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
+    width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    interpolation_values = [1,2,4,8,16,32,64]
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Poincaré Plot Visualizer v0.01 by Aaron F. Bianchi")
 
+        # Variables to store user input with default values
+        self.output_name = tk.StringVar(value="output")
+        self.vidfor = tk.StringVar(value=".mp4")
+        self.input_audio = tk.StringVar(value="")
+        self.audfor = tk.StringVar(value=".wav")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
+        self.fps = tk.DoubleVar(value=60)
+        self.res_width = tk.IntVar(value=720)
+        self.res_height = tk.IntVar(value=720)
+        self.delay = tk.IntVar(value=10)
+        self.interpolation = tk.IntVar(value="1")
+        self.thickness = tk.IntVar(value="1")
+        self.compression = tk.DoubleVar(value=0)
+
+        row_num = 0
+        # Create labels and Entry/Checkbutton widgets for input
+        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
+        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
+        row_num += 1  
+        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
+        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        row_num += 1
+        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        row_num += 1
+        create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
+        row_num += 1
+        create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Delay:", self.delay, row=row_num, tip="This can modify the shape of the scribble in cool ways.\nI don't know how to explain it. Just try and see.")
+        row_num += 1
+        create_combobox(self.master, "Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
+        row_num += 1
+        
+        # Create a Button to perform the action
+        self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
+        self.action_button.grid(row=row_num, column=1, pady=10)
+        #row_num += 1
+        
+        # Create a Label for the loading message (initially hidden)
+        self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
+        self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
+        self.loading_label.grid_remove()  # Initially hide the loading label
+
+    def perform_action(self):
+        try:
+            # Show loading label during action
+            self.loading_label.grid()
+            self.loading_label.config(fg="blue")
+            self.loading_label.config(text=f"Loading...")
+            self.master.update()  # Force update to show the label
+
+            # Get values from Entry widgets and perform the final action
+            output_name = self.output_name.get()
+            vidfor = self.vidfor.get()
+            input_audio = self.input_audio.get()
+            audfor = self.audfor.get()
+            channel = self.channel.get()
+            fps = self.fps.get()
+            res_width = self.res_width.get()
+            res_height = self.res_height.get()
+            delay = self.delay.get()
+            interpolation = self.interpolation.get()
+            thickness = self.thickness.get()
+            compression = self.compression.get()
+            
+            error_flag = False
+            if fps <= 0:
+                self.loading_label.config(text=f"Error! Frame rate must be a positive number.")
+                error_flag = True
+            if res_width <= 0 or (res_width % 2) != 0 or res_height <= 0 or (res_height % 2) != 0:
+                self.loading_label.config(text=f"Error! Resolution values must be positive even numbers.")
+                error_flag = True
+            if delay <= 0:
+                self.loading_label.config(text=f"Error! Delay amount must be a positive number.")
+                error_flag = True
+            if interpolation <= 0 or (interpolation % 1) != 0:
+                self.loading_label.config(text=f"Error! Interpolation must be a positive whole number.")
+                error_flag = True
+            if thickness <= 0 or (thickness % 1) != 0:
+                self.loading_label.config(text=f"Error! Thickness must be a positive whole number.")
+                error_flag = True
+            if compression < 0:
+                self.loading_label.config(text=f"Error! Compression must be a non-negative number.")
+                error_flag = True
+                
+            if error_flag == True:
+                self.loading_label.config(fg="Red")
+                self.master.update()  # Force update to show the label
+            else:
+                # Do something with the input values (replace this with your final action)
+                generate_poincare(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height,delay,interpolation,thickness,compression,self.update_loading_label)
+
+        except Exception:
+            #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
+            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(fg="Red")
+            self.master.update()  # Force update to show the label
+            
+    def update_loading_label(self, progress, total, text_state, text_message):       
+        if text_state == True:
+            self.loading_label.config(text=text_message)
+        else:
+            self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
+        self.master.update()  # Update the GUI
+    
+class DelayEmbedWindow:
+    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
+    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
+    channel_values = ["Both (Merge to mono)", "Both (Stereo)", "Left", "Right"]
+    fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
+    width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    delay_values = [1,5,10,15,20,30,50,100]
+    angle_values = [-90,-45,-30,-15,0,15,30,45,90]
+    rot_speed_values = [-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1]
+    interpolation_values = [1,2,4,8,16,32,64]
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Delay Embed Visualizer v0.05 by Aaron F. Bianchi")
+
+        # Variables to store user input with default values
+        self.output_name = tk.StringVar(value="output")
+        self.vidfor = tk.StringVar(value=".mp4")
+        self.input_audio = tk.StringVar(value="")
+        self.audfor = tk.StringVar(value=".wav")
+        self.channel = tk.StringVar(value="Both (Stereo)")
+        self.fps = tk.DoubleVar(value=60)
+        self.res_width = tk.IntVar(value=720)
+        self.res_height = tk.IntVar(value=720)
+        self.delay1 = tk.IntVar(value=10)
+        self.delay2 = tk.IntVar(value=20)
+        self.alfa_p = tk.DoubleVar(value=0)
+        self.alfa_s = tk.DoubleVar(value=0.25)
+        self.beta_p = tk.DoubleVar(value=15)
+        self.beta_s = tk.DoubleVar(value=0)
+        self.interpolation = tk.IntVar(value="1")
+        self.thickness = tk.IntVar(value="1")
+        self.compression = tk.DoubleVar(value=0)
+
+        row_num = 0
+        # Create labels and Entry/Checkbutton widgets for input
+        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
+        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
+        row_num += 1  
+        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
+        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        row_num += 1
+        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        row_num += 1
+        create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
+        row_num += 1
+        create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
+        row_num += 1
+        create_combobox_dual(self.master, "Delays:", self.delay1,"&", self.delay2, row=row_num, values=self.delay_values,values2=self.delay_values, tip="This can modify the shape of the scribble in cool ways.")
+        row_num += 1
+        create_combobox_dual(self.master, "Rotation:", self.alfa_p,"&", self.beta_p, row=row_num, values=self.angle_values,values2=self.angle_values, tip="Initial angular positions (Pitch and Jaw) of the scribble in degrees.")
+        row_num += 1
+        create_combobox_dual(self.master, "Rotation Speed:", self.alfa_s,"&", self.beta_s, row=row_num, values=self.rot_speed_values,values2=self.rot_speed_values, tip="Rotation speed of the scribble in revolutions per second")
+        row_num += 1
+        create_combobox(self.master, "Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
+        row_num += 1
+        
+        # Create a Button to perform the action
+        self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
+        self.action_button.grid(row=row_num, column=1, pady=10)
+        #row_num += 1
+        
+        # Create a Label for the loading message (initially hidden)
+        self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
+        self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
+        self.loading_label.grid_remove()  # Initially hide the loading label
+
+    def perform_action(self):
+        try:
+            # Show loading label during action
+            self.loading_label.grid()
+            self.loading_label.config(fg="blue")
+            self.loading_label.config(text=f"Loading...")
+            self.master.update()  # Force update to show the label
+
+            # Get values from Entry widgets and perform the final action
+            output_name = self.output_name.get()
+            vidfor = self.vidfor.get()
+            input_audio = self.input_audio.get()
+            audfor = self.audfor.get()
+            channel = self.channel.get()
+            fps = self.fps.get()
+            res_width = self.res_width.get()
+            res_height = self.res_height.get()
+            delay1 = self.delay1.get()
+            delay2 = self.delay2.get()
+            alfa_p = self.alfa_p.get()
+            alfa_s = self.alfa_s.get()
+            beta_p = self.beta_p.get()
+            beta_s = self.beta_s.get()
+            interpolation = self.interpolation.get()
+            thickness = self.thickness.get()
+            compression = self.compression.get()
+            
+            error_flag = False
+            if fps <= 0:
+                self.loading_label.config(text=f"Error! Frame rate must be a positive number.")
+                error_flag = True
+            if res_width <= 0 or (res_width % 2) != 0 or res_height <= 0 or (res_height % 2) != 0:
+                self.loading_label.config(text=f"Error! Resolution values must be positive even numbers.")
+                error_flag = True
+            if delay1 <= 0 or delay2 <= 0:
+                self.loading_label.config(text=f"Error! Delay amount must be a positive number.")
+                error_flag = True
+            if interpolation <= 0 or (interpolation % 1) != 0:
+                self.loading_label.config(text=f"Error! Interpolation must be a positive whole number.")
+                error_flag = True
+            if thickness <= 0 or (thickness % 1) != 0:
+                self.loading_label.config(text=f"Error! Thickness must be a positive whole number.")
+                error_flag = True
+            if compression < 0:
+                self.loading_label.config(text=f"Error! Compression must be a non-negative number.")
+                error_flag = True
+                
+            if error_flag == True:
+                self.loading_label.config(fg="Red")
+                self.master.update()  # Force update to show the label
+            else:
+                # Do something with the input values (replace this with your final action)
+                generate_delay_embed(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height,delay1,delay2, beta_p, beta_s, alfa_p, alfa_s,interpolation,thickness,compression,self.update_loading_label)
+
+        except Exception:
+            #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
+            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(fg="Red")
+            self.master.update()  # Force update to show the label
+            
+    def update_loading_label(self, progress, total, text_state, text_message):       
+        if text_state == True:
+            self.loading_label.config(text=text_message)
+        else:
+            self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
+        self.master.update()  # Update the GUI
+        
+class HelpWindow:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Help!!!!!!!!!!!!!111ONE")
+        
+        row_num = 0
+        # Create labels and Entry/Checkbutton widgets for input
+        warning_label = tk.Label(self.master, text="HELP iM TRAPPED IN A VISUALIZER FACTORY IN  [R E D A C T E D]", fg="red")
+        warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
+        
+        row_num += 1
+        # Create a Button to perform the action
+        self.action_button = tk.Button(self.master, text="Donate for rescue", command=self.perform_action)
+        self.action_button.grid(row=row_num, column=1, pady=10)
+
+        row_num += 1
+        warning_label = tk.Label(self.master, text="Actually no. This program is totally free. You don't have to pay anything.\n But if you feel the need, donations are appreciated :)", fg="black")
+        warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
+        #row_num += 1
+
+    def perform_action(self):
+        webbrowser.open("https://aaron-f-bianchi.itch.io/lsao/purchase")
+      
 #################################################
 ################## MAIN WINDOW ##################
 #################################################
@@ -2799,82 +3397,196 @@ def option8():
 def option9():
     recurrence_window = tk.Toplevel(root)
     RecurrenceWindow(recurrence_window)
+    
+def option10():
+    poincare_window = tk.Toplevel(root)
+    PoincareWindow(poincare_window)
+        
+def option11():
+    delay_embed_window = tk.Toplevel(root)
+    DelayEmbedWindow(delay_embed_window)
 
-# Main window
+def option12():
+    help_window = tk.Toplevel(root)
+    HelpWindow(help_window)
+
+def update_gif(button, frames):
+    if button.gif_playing: 
+        frame_index = button.current_frame
+        try:
+            gif_frame = frames[frame_index]
+        except IndexError:
+            frame_index = 0
+            gif_frame = frames[frame_index]
+
+        button.config(image=gif_frame)
+        button.current_frame = frame_index + 1
+        button.after(20, update_gif, button, frames)
+
+def start_gif(event, button, frames):
+    if not button.gif_playing:
+        button.gif_playing = True
+        update_gif(button, frames)
+
+def stop_gif(event, button):
+    button.gif_playing = False 
+
+#MAIN WINDOW
 root = tk.Tk()
-root.title("LSaO Visualizer v0.72")
+root.title("LSaO Visualizer v0.77")
 
-# Set initial size (width x height)
-#root.geometry("600x300")
+def load_gif(path):
+    gif = Image.open(path)
+    frames = []
+    try:
+        while True:
+            frame = ImageTk.PhotoImage(gif.copy())
+            frames.append(frame)
+            gif.seek(len(frames))
+    except EOFError:
+        pass
+    return frames
 
-image1 = tk.PhotoImage(file="resources/img_spec.png")
-image5 = tk.PhotoImage(file="resources/img_specdB.png")
-image2 = tk.PhotoImage(file="resources/img_swav.png")
-image3 = tk.PhotoImage(file="resources/img_lwav.png")
-image4 = tk.PhotoImage(file="resources/img_osc.png")
-image6 = tk.PhotoImage(file="resources/img_polar.png")
-image7 = tk.PhotoImage(file="resources/img_polar_stereo.png")
-image8 = tk.PhotoImage(file="resources/img_spec_balance.png")
-image9 = tk.PhotoImage(file="resources/img_recurrence.png")
+# Load all GIFs
+gif1 = load_gif("resources/img_spec.gif")
+gif2 = load_gif("resources/img_swav.gif")
+gif3 = load_gif("resources/img_lwav.gif")
+gif4 = load_gif("resources/img_osc.gif")
+gif5 = load_gif("resources/img_specdB.gif")
+gif6 = load_gif("resources/img_polar.gif")
+gif7 = load_gif("resources/img_polar_stereo.gif")
+gif8 = load_gif("resources/img_spec_balance.gif")
+gif9 = load_gif("resources/img_recurrence.gif")
+gif10 = load_gif("resources/img_poincare.gif")
+gif11 = load_gif("resources/img_embed2.gif")
+gif12 = load_gif("resources/help_small.gif")
 
-row_num = 0
 # Initial text label
-initial_text = "Usage:\n- Place your audio file in the same folder this executable is.\n- The generated video will be exported to the\n  same folder. [WILL OVERWRITE]"
+row_num = 0
+initial_text = "Usage:\n- Place your audio file in the same folder this executable is.\n- The generated video will be exported to the same folder. [WILL OVERWRITE]"
 if os.name == 'nt':
     print("Running on Windows")
-    initial_text = initial_text + "\n- FFmpeg needs to be manually installed and added to PATH.\n- The default Windows video player isn't going to play the generated\n  videos correctly. Try a better video player."
+    initial_text = initial_text + "\n- FFmpeg needs to be manually installed and added to PATH.\n- The default Windows video player isn't going to play the generated videos correctly. Try a better video player."
 elif os.name == 'posix':
     print("Running on Linux or Unix-like system")
     initial_text = initial_text + "\n- FFmpeg is required."
-initial_label = tk.Label(root, text=initial_text, font=("Helvetica", 10), anchor='w', justify='left') 
+initial_label = tk.Label(root, text=initial_text, font=("Helvetica", 10), anchor='w', justify='left')
 initial_label.grid(row=row_num, column=0, columnspan=4, padx=10, pady=10, sticky="w")
 
-# link label
-#link_label = tk.Label(root, text="aaronfbianchi.github.io", font=("Helvetica", 10), fg="blue", justify='right')
-#link_label.grid(row=row_num, column=0, columnspan=4, padx=10, pady=10, sticky="en") 
-
 row_num += 1
+col_num = 0
 # Button for option 1
-button_option1 = tk.Button(root, image=image1, text="Linear Spectrum", compound=tk.BOTTOM, command=option1, width=130, height=130)
-button_option1.grid(row=row_num, column=0, padx=0, pady=0, sticky="w")
+button_option1 = tk.Button(root, image=gif1[38], text="Linear Spectrum", compound=tk.BOTTOM, command=option1, width=130, height=130)
+button_option1.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+button_option1.gif_playing = False  # Add a flag to track if the GIF is playing
+button_option1.current_frame = 38  # Track the current frame index
+button_option1.bind("<Enter>", lambda e: start_gif(e, button_option1, gif1))
+button_option1.bind("<Leave>", lambda e: stop_gif(e, button_option1))
 
+col_num += 1
 # Button for option 5
-button_option5 = tk.Button(root, image=image5, text="Linear Spec. (dB)", compound=tk.BOTTOM, command=option5, width=130, height=130)
-button_option5.grid(row=row_num, column=1, padx=0, pady=0, sticky="w")
+button_option5 = tk.Button(root, image=gif5[24], text="Linear Spec. (dB)", compound=tk.BOTTOM, command=option5, width=130, height=130)
+button_option5.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+button_option5.gif_playing = False
+button_option5.current_frame = 24
+button_option5.bind("<Enter>", lambda e: start_gif(e, button_option5, gif5))
+button_option5.bind("<Leave>", lambda e: stop_gif(e, button_option5))
 
-# Button for option 2
-button_option2 = tk.Button(root, image=image2, text="Short Waveform", compound=tk.BOTTOM, command=option2, width=130, height=130)
-button_option2.grid(row=row_num, column=2, padx=0, pady=0, sticky="w")
-
-row_num += 1
-# Button for option 3
-button_option3 = tk.Button(root, image=image3, text="Long Waveform", compound=tk.BOTTOM, command=option3, width=130, height=130)
-button_option3.grid(row=row_num, column=0, padx=0, pady=0, sticky="w")
-
-# Button for option 4
-button_option4 = tk.Button(root, image=image4, text="Oscilloscope", compound=tk.BOTTOM, command=option4, width=130, height=130)
-button_option4.grid(row=row_num, column=1, padx=0, pady=0, sticky="w")
-
-# Button for option 6
-button_option6 = tk.Button(root, image=image6, text="Polar (Mono)", compound=tk.BOTTOM, command=option6, width=130, height=130)
-button_option6.grid(row=row_num, column=2, padx=0, pady=0, sticky="w")
-
-row_num += 1
-# Button for option 7
-button_option7 = tk.Button(root, image=image7, text="Polar (Stereo)", compound=tk.BOTTOM, command=option7, width=130, height=130)
-button_option7.grid(row=row_num, column=0, padx=0, pady=0, sticky="w")
-
+col_num += 1
 # Button for option 8
-button_option8 = tk.Button(root, image=image8, text="Spectral Balance", compound=tk.BOTTOM, command=option8, width=130, height=130)
-button_option8.grid(row=row_num, column=1, padx=0, pady=0, sticky="w")
+button_option8 = tk.Button(root, image=gif8[50], text="Spectral Balance", compound=tk.BOTTOM, command=option8, width=130, height=130)
+button_option8.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+button_option8.gif_playing = False
+button_option8.current_frame = 50
+button_option8.bind("<Enter>", lambda e: start_gif(e, button_option8, gif8))
+button_option8.bind("<Leave>", lambda e: stop_gif(e, button_option8))
 
+col_num += 1
+# Button for option 2
+button_option2 = tk.Button(root, image=gif2[53], text="Short Waveform", compound=tk.BOTTOM, command=option2, width=130, height=130)
+button_option2.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+button_option2.gif_playing = False
+button_option2.current_frame = 53
+button_option2.bind("<Enter>", lambda e: start_gif(e, button_option2, gif2))
+button_option2.bind("<Leave>", lambda e: stop_gif(e, button_option2))
+
+row_num += 1
+col_num = 0
+# Button for option 3
+button_option3 = tk.Button(root, image=gif3[30], text="Long Waveform", compound=tk.BOTTOM, command=option3, width=130, height=130)
+button_option3.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+button_option3.gif_playing = False
+button_option3.current_frame = 30
+button_option3.bind("<Enter>", lambda e: start_gif(e, button_option3, gif3))
+button_option3.bind("<Leave>", lambda e: stop_gif(e, button_option3))
+
+col_num += 1
 # Button for option 9
-button_option9 = tk.Button(root, image=image9, text="Recurrence Plot", compound=tk.BOTTOM, command=option9, width=130, height=130)
-button_option9.grid(row=row_num, column=2, padx=0, pady=0, sticky="w")
+button_option9 = tk.Button(root, image=gif9[111], text="Recurrence", compound=tk.BOTTOM, command=option9, width=130, height=130)
+button_option9.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+button_option9.gif_playing = False
+button_option9.current_frame = 111
+button_option9.bind("<Enter>", lambda e: start_gif(e, button_option9, gif9))
+button_option9.bind("<Leave>", lambda e: stop_gif(e, button_option9))
+
+col_num += 1
+# Button for option 4
+button_option4 = tk.Button(root, image=gif4[109], text="Oscilloscope", compound=tk.BOTTOM, command=option4, width=130, height=130)
+button_option4.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+button_option4.gif_playing = False
+button_option4.current_frame = 109
+button_option4.bind("<Enter>", lambda e: start_gif(e, button_option4, gif4))
+button_option4.bind("<Leave>", lambda e: stop_gif(e, button_option4))
+
+col_num += 1
+# Button for option 6
+button_option6 = tk.Button(root, image=gif6[228], text="Polar (Mono)", compound=tk.BOTTOM, command=option6, width=130, height=130)
+button_option6.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+button_option6.gif_playing = False
+button_option6.current_frame = 228
+button_option6.bind("<Enter>", lambda e: start_gif(e, button_option6, gif6))
+button_option6.bind("<Leave>", lambda e: stop_gif(e, button_option6))
+
+row_num += 1
+col_num = 0
+# Button for option 7
+button_option7 = tk.Button(root, image=gif7[575], text="Polar (Stereo)", compound=tk.BOTTOM, command=option7, width=130, height=130)
+button_option7.grid(row=row_num, column=col_num, columnspan=2, padx=65, pady=0, sticky="w")
+button_option7.gif_playing = False
+button_option7.current_frame = 575
+button_option7.bind("<Enter>", lambda e: start_gif(e, button_option7, gif7))
+button_option7.bind("<Leave>", lambda e: stop_gif(e, button_option7))
+
+col_num += 1
+# Button for option 10
+button_option10 = tk.Button(root, image=gif10[41], text="Poincaré", compound=tk.BOTTOM, command=option10, width=130, height=130)
+button_option10.grid(row=row_num, column=col_num, columnspan=2, padx=65, pady=0, sticky="w")
+button_option10.gif_playing = False
+button_option10.current_frame = 41
+button_option10.bind("<Enter>", lambda e: start_gif(e, button_option10, gif10))
+button_option10.bind("<Leave>", lambda e: stop_gif(e, button_option10))
+
+col_num += 1
+# Button for option 11
+button_option11 = tk.Button(root, image=gif11[97], text="Delay Embed", compound=tk.BOTTOM, command=option11, width=130, height=130)
+button_option11.grid(row=row_num, column=col_num, columnspan=2, padx=65, pady=0, sticky="w")
+button_option11.gif_playing = False
+button_option11.current_frame = 97
+button_option11.bind("<Enter>", lambda e: start_gif(e, button_option11, gif11))
+button_option11.bind("<Leave>", lambda e: stop_gif(e, button_option11))
+
+# col_num += 1
+# # Button for option 12
+# button_option12 = tk.Button(root, image=gif12[0], text="H E L P", compound=tk.BOTTOM, command=option12, width=130, height=130)
+# button_option12.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+# button_option12.gif_playing = False
+# button_option12.current_frame = 0
+# button_option12.bind("<Enter>", lambda e: start_gif(e, button_option12, gif12))
+# button_option12.bind("<Leave>", lambda e: stop_gif(e, button_option12))
 
 row_num += 1
 # Credits label
-credits_label = tk.Label(root, text="© 2025 Aaron F. Bianchi - LSaO Visualizer", font=("Helvetica", 10), fg="blue", justify='center')
+credits_label = tk.Label(root, text="© 2025 Aaron F. Bianchi - Linear Spectrum and Oscilloscope Visualizer", font=("Helvetica", 10), fg="blue", justify='center')
 credits_label.grid(row=row_num, column=0, columnspan=5, pady=5, sticky="ew") 
 credits_label.bind("<Button-1>", lambda e: webbrowser.open("aaronfbianchi.github.io"))
 
