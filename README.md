@@ -64,6 +64,15 @@ Linear Spectral Balance and Recurrence Plot:
        alt="Example Recurrence Plot GIF"
        style="max-width: 100%; height: auto; margin: 0px;">
 </div>
+Poincaré Plot and Delay Embedding Plot:
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-poincare.gif"
+       alt="Example Poincaré Plot GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-embed.gif"
+       alt="Example Delay Embedding Plot GIF"
+       style="max-width: 100%; height: auto; margin: 0px;">
+</div>
 
 
 Bunch of demo videos
