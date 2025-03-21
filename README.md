@@ -82,7 +82,7 @@ Bunch of demo videos
 * [The Forbidden Dance](https://www.youtube.com/watch?v=qKTOINiTxGw) by The Hamster Alliance
 * [Nailgun](https://www.youtube.com/watch?v=buWPKEcAkw8) by Aaron F. Bianchi
 * [Deathmatch EP](https://www.youtube.com/watch?v=_H94n6kc204) by Aaron F. Bianchi
-* [The Blip](https://www.youtube.com/watch?v=6q7hULl50wA) by The Hamster Alliance
+* [Blip](https://youtu.be/unIQeniWOp0) by The Hamster Alliance
 * [Death Itself](https://youtu.be/11eqIOSgt0w?si=JjFL0j3CZkbPQk2i) by Aaron F. Bianchi
 
 Why?
