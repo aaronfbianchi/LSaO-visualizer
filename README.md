@@ -40,7 +40,7 @@ Stereo Oscilloscope and Mono Polar Oscilloscope:
        alt="Example Polar Oscilloscope GIF"
        style="max-width: 100%; height: auto; margin: 0px;">
 </div>
-Stereo Polar Oscilloscope (various tunings):
+Stereo Polar Oscilloscope (one audio source and various tunings):
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-stereo.gif"
        alt="Example Stereo Polar Oscilloscope GIF"
