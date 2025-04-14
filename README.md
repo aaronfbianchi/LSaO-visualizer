@@ -7,6 +7,12 @@ This tool can export videos of a linear spectrum, tuned short waveform, long wav
 
 Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white visualizer over a black background for further processing with a video editor of your preference.
 
+Download
+---------------------
+You can download it [here](https://aaron-f-bianchi.itch.io/lsao/purchase).
+
+Bunch of demo GIFs
+---------------------
 Linear Spectrum:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif"
@@ -88,10 +94,6 @@ Bunch of demo videos
 Why?
 ---------------------
 This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects, but who wants to install an Adobe product anyway).
-
-Download
----------------------
-You can download it [here](https://github.com/aaronfbianchi/LSaO-visualizer/releases).
 
 Installation
 ---------------------
