@@ -101,8 +101,6 @@ You don't need to install it. Just double click the executable.
 
 Usage
 ---------------------
-* Place your audio file in the same folder the executable is.
-* The video will be exported to the same folder. If there's another one with the same name as the output, it will overwrite it without asking.
 * FFmpeg is required.
 * The oscilloscope generator only works with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
 
