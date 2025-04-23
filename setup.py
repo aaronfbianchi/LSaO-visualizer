@@ -1,9 +1,9 @@
 from cx_Freeze import setup, Executable
-#python setup.py build
+#python3 setup.py build
 
 setup(
     name="LSaO Visualizer",
-    #version="0.55",
-    #description="Linear Spectrum and Osciloscope Visualizer Generator",
-    executables=[Executable("main.py")]
+    description="Extremely Violent and Fast Visualization Tool",
+    executables=[Executable("main.py", target_name="LSaO Visualizer")],
 )
+

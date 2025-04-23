@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import PhotoImage
 from tkinter import messagebox
+from tkinter import filedialog
 import numpy as np
 from scipy import signal
 import subprocess
@@ -15,9 +16,9 @@ from scipy.signal import butter, filtfilt#, sosfreqz, sosfreqresp, sos2tf, sosfi
 import webbrowser
 from PIL import Image, ImageTk
 
-#####################################################
-## LINEAR SPRECTRUM VISUALIZER by Aarón F. Bianchi ##
-#####################################################
+######################################################################
+## LINEAR SPRECTRUM AND OSCILLOSCOPE VISUALIZER by Aarón F. Bianchi ##
+######################################################################
 
 def read_audio_samples(input_file):
     cmd = ['ffmpeg', '-i', input_file, '-f', 's16le', '-']
@@ -85,11 +86,10 @@ def convert_vid(input_audio, output_name, vidfor):
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
 
-def generate_spectrum(output_name, vidfor, input_audio, audfor, channel,fps, res_width, res_height, t_smoothing, xlow, xhigh, limt_junk, attenuation_steep, junk_threshold, threshold_steep, style, thickness, compression, callback_function):
-        
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
+def generate_spectrum(output_name,input_audio, channel,fps, res_width, res_height, t_smoothing, xlow, xhigh, limt_junk, attenuation_steep, junk_threshold, threshold_steep, style, thickness, compression, callback_function):
+    root, vidfor = os.path.splitext(output_name)
 
+    print("poto")
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
     
@@ -259,10 +259,9 @@ def generate_spectrum(output_name, vidfor, input_audio, audfor, channel,fps, res
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
 
-def generate_spectrum_dB(output_name, vidfor, input_audio, audfor, channel,fps, res_width, res_height, t_smoothing, xlow, xhigh, min_dB, style, thickness, compression, callback_function):
-        
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
+def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_height, t_smoothing, xlow, xhigh, min_dB, style, thickness, compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
 
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
@@ -421,10 +420,9 @@ def generate_spectrum_dB(output_name, vidfor, input_audio, audfor, channel,fps, 
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
     
-def generate_spec_balance(output_name, vidfor, input_audio, audfor,fps, res_width, res_height, t_smoothing, xlow, xhigh, style, thickness, compression, callback_function):
-        
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
+def generate_spec_balance(output_name,input_audio,fps, res_width, res_height, t_smoothing, xlow, xhigh, style, thickness, compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
 
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
@@ -602,11 +600,152 @@ def generate_spec_balance(output_name, vidfor, input_audio, audfor,fps, res_widt
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
  
-def generate_waveform(output_name,vidfor,input_audio,audfor,channel,fps_2, res_width, res_height, note, window_size, style,thickness,compression, callback_function):
-        
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
+def generate_histogram(output_name,input_audio, channel,fps, res_width, res_height, size_frame, bars, sensitivity, curve_style, style, thickness, compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
+    song, fs = read_audio_samples(input_audio)
+    song = song.T.astype(np.float16)
     
+    #oversampling = 8 ## SMOOTHING IN THE CURVE (INTEGER)
+    #t_smoothing = 1 ## TIME SMOOTHING (INTEGER)
+    print(f"song {song.shape}")
+    print(f"song {song.shape[0]}")
+    if song.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.transpose(np.mean(song, axis = 0))
+            print(f"audio {audio.shape}")
+        elif channel == "Left":
+            audio = np.transpose(song[0,:])
+        elif channel == "Right":
+            audio = np.transpose(song[1,:])
+    else:
+        audio = np.transpose(song)
+        print(f"audio {audio.shape}")
+    #print(np.max(audio))
+    #print(np.min(audio))
+    audio = np.clip(audio, -32768, 32767)
+    
+    n_frames = int(np.ceil(len(audio)*fps/fs))
+    speed = len(audio)/n_frames
+    
+    if size_frame < int(fs/fps): #CALCULATE THE MINIMUM FRAME SIZE IN CASE IT'S TOO SHORT
+        size_frame = int(fs/fps)
+    audio = np.pad(audio, (0, int(speed*(n_frames) - len(audio) + size_frame))) ## TO COMPLETE THE LAST FRAME
+    
+    #audioShaped = np.zeros((n_frames,size_frame))
+    hist = np.zeros((n_frames,bars))
+    resampled_hist = np.zeros((n_frames,res_width))
+    
+    if curve_style == "Flat": #RESMAPLING BADLY THE HISTOGRAM
+        repeat_counts = np.floor(res_width * np.ones(bars) / bars).astype(int)
+        remainder = res_width - repeat_counts.sum()
+        repeat_counts[:remainder] += 1
+    elif curve_style == "Linear":
+        old_x = np.linspace(0, bars - 1, bars)
+        new_x = np.linspace(0, bars - 1, res_width)
+        
+    for i in range(n_frames):
+        audioShaped = audio[int(i*speed) : int(i*speed) + size_frame]
+        hist[i,:], bins = np.histogram(audioShaped, bins=bars, range=(-32768, 32767))
+        
+        if curve_style == "Flat":
+            resampled_hist[i,:] = np.repeat(hist[i,:], repeat_counts)
+            #resampled_hist[i,:] = resampled_hist[i,:]/np.max(resampled_hist[i,:])
+        elif curve_style == "Linear":
+            resampled_hist[i,:] = np.interp(new_x, old_x, hist[i,:])
+    if curve_style == "FFT Resample":
+        resampled_hist = abs(signal.resample(hist, res_width, axis = 1))
+        
+    #fsong_comp = (resampled_hist + 1)**0.5 - 1
+    if sensitivity > 0:
+        fsong_comp = np.log(sensitivity*resampled_hist+1)
+    else:
+        fsong_comp = resampled_hist
+    fsong_comp = (res_height-1)*(fsong_comp/np.max(fsong_comp)).astype(np.float16) ## NORMALIZATION AGAIN
+    
+    #style = 2 ## STYLE OF THE DRAWING
+    if style == "Just Points": ## DRAWS DOTS IN SCREEN
+        points = True
+        filled = False
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
+        points = False
+        filled = False
+    elif style == "Filled Histogram": ## DRAWS FILLED SPECTRUM
+        points = False
+        filled = True
+    
+    cmd = [
+        'ffmpeg',
+        '-y',  # Overwrite output file if it exists
+        '-f', 'rawvideo',
+        '-s', '{}x{}'.format(res_width, res_height),
+        '-pix_fmt', 'gray',  # Use grayscale pixel format
+        '-r', str(fps),  # Frames per second
+        '-i', '-',  # Read input from stdin
+        '-c:v', 'libx264',  # Video codec
+        '-preset', 'medium',  # Encoding speed vs compression ratio
+        '-crf', str(compression),  # Constant Rate Factor (0-51): Lower values mean better quality
+        '-pix_fmt', 'yuv420p',  # Pixel format for compatibility
+        'resources/temporary_file.mp4'
+    ]
+    
+    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+
+    # Generate and save each frame as an image
+    for i in range(n_frames):
+        frameData = np.zeros((res_height, res_width), dtype=bool)
+        if filled == False:
+            if points:## DRAWS JUST POINTS
+                for m in range(res_width):
+                    frameData[res_height - int(fsong_comp[i,m]) - 1, m] = True
+    
+            else: ## DRAWS A LINE (1.5x SLOW)
+                for m in range(res_width - 1):
+                    point1 = fsong_comp[i,m]
+                    point2 = fsong_comp[i,m+1]
+                    #if  int(point1) == int(point2):
+                    frameData[res_height - int(fsong_comp[i,m]) - 1, m] = True
+                    if  int(point1) > int(point2):
+                        frameData[res_height - int(point1) -1: res_height - int(point2) -1, m] = True
+                    else:
+                        frameData[res_height - int(point2) -1: res_height - int(point1) -1, m] = True
+        else: ## FILLED SPECTRUM
+            for m in range(res_width):
+                frameData[(res_height - int(fsong_comp[i,m])):res_height, m] = True
+    
+    
+        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
+        if thickness > 1:
+            for th in range(thickness - 1):
+                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
+                shifted[-1, :] = False ## CLEARS BOTTOM ROW
+                #frameData = (frameData + shifted)
+                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
+                shifted2[:, -1] = False ## CLEARS LAST COLUMN
+                frameData = frameData | shifted | shifted2 
+        
+        frameData = frameData.astype(np.uint8) * 255
+        
+        ffmpeg_process.stdin.write(frameData)
+        print(f"{i+1}/{n_frames}")
+        callback_function(i,n_frames, text_state = False, text_message = " ")
+        
+    ffmpeg_process.stdin.close()
+    ffmpeg_process.wait()
+    
+    callback_function(i,n_frames, text_state = True, text_message = "Joining frames...")
+    convert_vid(input_audio, output_name, vidfor)
+        
+    print(f"Video saved to {output_name}")
+    os.remove("resources/temporary_file.mp4")
+    callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
+    return 0
+
+def generate_waveform(output_name,input_audio,channel,fps_2, res_width, res_height, note, window_size, style,thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
     
@@ -741,11 +880,10 @@ def generate_waveform(output_name,vidfor,input_audio,audfor,channel,fps_2, res_w
     callback_function(i,n_frames_2, text_state = True, text_message = "Done, my dood!")
     return 0
 
-def generate_waveform_long(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height,window_size, style,thickness,compression, callback_function):
+def generate_waveform_long(output_name,input_audio,channel,fps, res_width, res_height,window_size, style,thickness,compression, callback_function):
     
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
-    
+    root, vidfor = os.path.splitext(output_name)
+
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
     
@@ -868,10 +1006,10 @@ def generate_waveform_long(output_name,vidfor,input_audio,audfor,channel,fps, re
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
 
-def generate_oscilloscope(output_name,vidfor,input_audio,audfor,fps, res_width, res_height,interpolation,thickness,compression, callback_function):
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
-    
+def generate_oscilloscope(output_name,input_audio,fps, res_width, res_height,interpolation,thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
     song, fs = read_audio_samples(input_audio)
     
     print(f"shape song {song.shape}")
@@ -990,10 +1128,10 @@ def generate_oscilloscope(output_name,vidfor,input_audio,audfor,fps, res_width, 
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
     
-def generate_polar(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height,offset, note, interpolation,thickness,compression, callback_function):
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
-    
+def generate_polar(output_name,input_audio,channel,fps, res_width, res_height,offset, note, interpolation,thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
      
@@ -1140,10 +1278,10 @@ def generate_polar(output_name,vidfor,input_audio,audfor,channel,fps, res_width,
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
     
-def generate_polar_stereo(output_name,vidfor,input_audio,audfor,fps, res_width, res_height,offset, note, interpolation,thickness,compression, callback_function):
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
-    
+def generate_polar_stereo(output_name,input_audio,fps, res_width, res_height,offset, note, interpolation,thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
     song = song/np.max(np.max(abs(abs(song)))) ##TRANSPOSITION AND NORMALIZATION
@@ -1284,10 +1422,10 @@ def generate_polar_stereo(output_name,vidfor,input_audio,audfor,fps, res_width, 
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
 
-def generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height, note, threshold, thickness,compression, callback_function):
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
-    
+def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_height, note, threshold, thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
      
@@ -1445,10 +1583,10 @@ def generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_w
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
      
-def generate_poincare(output_name,vidfor,input_audio,audfor,channel ,fps, res_width, res_height, delay, interpolation,thickness,compression, callback_function):
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
-    
+def generate_poincare(output_name,input_audio,channel ,fps, res_width, res_height, delay, interpolation,thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
     song = song/np.max(np.max(abs(abs(song)))) ##TRANSPOSITION AND NORMALIZATION
@@ -1580,10 +1718,10 @@ def generate_poincare(output_name,vidfor,input_audio,audfor,channel ,fps, res_wi
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
     
-def generate_delay_embed(output_name,vidfor,input_audio,audfor,channel ,fps, res_width, res_height, delay1,delay2, beta_p, beta_s, alfa_p, alfa_s,interpolation,thickness,compression, callback_function):
-    output_name = output_name + vidfor
-    input_audio = input_audio + audfor
-    
+def generate_delay_embed(output_name,input_audio,channel ,fps, res_width, res_height, delay1,delay2, beta_p, beta_s, alfa_p, alfa_s,interpolation,thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
     song = song/np.max(np.max(abs(abs(song)))) ##TRANSPOSITION AND NORMALIZATION
@@ -1870,14 +2008,74 @@ def validate_numeric(value):
         return False  # If conversion fails, return False
 
 
+def create_file_input_row(parent, label_text, row, path_var=None):
+    label = tk.Label(parent, text=label_text)
+    label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
+
+    entry = tk.Entry(parent, textvariable=path_var)
+    entry.grid(row=row, column=1, columnspan = 2, padx=92, pady=5, sticky="w")
+    entry.config(width=60)
+
+    def browse():
+        file_path = filedialog.askopenfilename(
+            title="Select an audio file",
+            filetypes=[
+                ("Audio files", "*.wav *.mp3 *.aac *.flac *.ogg *.opus *.wma *.m4a"),
+                ("All files", "*.*")
+            ]
+        )
+        if file_path:
+            # If a path_var is provided, set the value of path_var to the file path
+            if path_var is not None:
+                path_var.set(file_path)
+            else:
+                entry.delete(0, tk.END)
+                entry.insert(0, file_path)
+            entry.xview_moveto(1)  #SHOW THE NAME OF THE FILE IN THE PATH
+
+    button = tk.Button(parent, text="Browse", command=browse)
+    button.grid(row=row, column=1, padx=5, pady=5, sticky="w")
+
+    return entry
+
+def create_file_output_row(parent, label_text, row, path_var=None):
+    label = tk.Label(parent, text=label_text)
+    label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
+
+    # Bind the entry to the path_var if provided
+    entry = tk.Entry(parent, textvariable=path_var)
+    entry.grid(row=row, column=1, columnspan = 2, padx=92, pady=5, sticky="w")
+    entry.config(width=60)
+
+    def browse():
+        file_path = filedialog.asksaveasfilename(
+            title="Save video as",
+            defaultextension=".mp4",
+            filetypes=[
+                ("Video files", "*.mp4 *.avi *.webm *.webp *.gif *.flv *.mkv *.mov *.wmv *.3gp"),
+                ("All files", "*.*")
+            ]
+        )
+        if file_path:
+            # If a path_var is provided, set the value of path_var to the file path
+            if path_var is not None:
+                path_var.set(file_path)
+            else:
+                entry.delete(0, tk.END)
+                entry.insert(0, file_path)
+            entry.xview_moveto(1)  #SHOW THE NAME OF THE FILE IN THE PATH
+
+    button = tk.Button(parent, text="Browse", command=browse)
+    button.grid(row=row, column=1, padx=5, pady=5, sticky="w")
+
+    return entry
+
 
 #################################################
 #################### WINDOWS ####################
 #################################################
 
 class SpectrumWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
@@ -1891,10 +2089,8 @@ class SpectrumWindow:
         self.master.title("Linear Spectrum Visualizer v0.19 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=1920)
@@ -1912,11 +2108,9 @@ class SpectrumWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
         row_num += 1
@@ -1928,13 +2122,13 @@ class SpectrumWindow:
         row_num += 1
         create_combobox_dual(self.master, "Frequency Limits:", self.xlow, "-", self.xhigh, row=row_num, values=self.xlow_values, values2=self.xhigh_values, tip="Lower and higher frequency limits in Hz, respectively.\nFrom 1Hz to half the sample rate of the audio.")
         row_num += 1
-        create_input_widgets_num(self.master, "Mid and High Boost:", self.attenuation_steep, row=row_num, tip="This will boost everything except the low end. You can enter a negative\nvalue for some crazy results, but going below -10 has no purpose.")
+        create_input_widgets_num(self.master, "Mid/High Boost:", self.attenuation_steep, row=row_num, tip="This will boost everything but the low end. You can enter a negative\nvalue for some crazy results, but going below -10 has no purpose.")
         row_num += 1
-        create_checkbutton(self.master, "Expander", self.limt_junk, row=row_num, tip="This will reduce the intensity of small amplitudes and boost mid amplitudes.")
+        create_checkbutton(self.master, "Expander", self.limt_junk, row=row_num, tip="This will reduce the intensity of small amplitudes.")
         row_num += 1
-        create_input_widgets_num(self.master, "Expander Threshold:", self.junk_threshold, row=row_num, tip="The bigger this value, the bigger amplitudes have to be to not be reduced.\nDoesn't have to be a whole number.")
+        create_input_widgets_num(self.master, "Expand Threshold:", self.junk_threshold, row=row_num, tip="The bigger this value, the bigger amplitudes have to be to not\nbe reduced. Doesn't have to be a whole number.")
         row_num += 1
-        create_input_widgets_num(self.master, "Expander Steepness:", self.threshold_steep, row=row_num, tip="This will make the transition between amplitudes being reduced\nor boosted more abrupt. Doesn't have to be a whole number.")
+        create_input_widgets_num(self.master, "Expand Steepness:", self.threshold_steep, row=row_num, tip="This will make the transition between amplitudes being reduced\nor boosted more abrupt. Doesn't have to be a whole number.")
         row_num += 1
         create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
@@ -1963,9 +2157,7 @@ class SpectrumWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             channel = self.channel.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
@@ -2005,8 +2197,7 @@ class SpectrumWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_spectrum(output_name,vidfor,input_audio,audfor,channel,fps,res_width,res_height,t_smoothing,xlow,xhigh,limt_junk,attenuation_steep,junk_threshold,threshold_steep,style,thickness,compression,self.update_loading_label)
+                generate_spectrum(output_name,input_audio,channel,fps,res_width,res_height,t_smoothing,xlow,xhigh,limt_junk,attenuation_steep,junk_threshold,threshold_steep,style,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -2022,8 +2213,6 @@ class SpectrumWindow:
         self.master.update()  # Update the GUI
 
 class SpectrumdBWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
@@ -2037,10 +2226,8 @@ class SpectrumdBWindow:
         self.master.title("Linear Spectrum Visualizer (dB) v0.12 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=1920)
@@ -2055,11 +2242,9 @@ class SpectrumdBWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
         row_num += 1
@@ -2099,9 +2284,7 @@ class SpectrumdBWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             channel = self.channel.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
@@ -2141,8 +2324,7 @@ class SpectrumdBWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_spectrum_dB(output_name, vidfor, input_audio, audfor, channel, fps, res_width, res_height, t_smoothing, xlow, xhigh, min_dB, style, thickness, compression, self.update_loading_label)
+                generate_spectrum_dB(output_name,input_audio, channel, fps, res_width, res_height, t_smoothing, xlow, xhigh, min_dB, style, thickness, compression, self.update_loading_label)
 
         except Exception:
             self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
@@ -2157,8 +2339,6 @@ class SpectrumdBWindow:
         self.master.update()  # Update the GUI
 
 class SpecBalanceWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -2171,10 +2351,8 @@ class SpecBalanceWindow:
         self.master.title("Linear Spectral Balance Visualizer v0.03 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=720)
         self.res_height = tk.IntVar(value=720)
@@ -2187,11 +2365,9 @@ class SpecBalanceWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -2228,9 +2404,7 @@ class SpecBalanceWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
             res_height = self.res_height.get()
@@ -2265,8 +2439,136 @@ class SpecBalanceWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_spec_balance(output_name,vidfor,input_audio,audfor,fps,res_width,res_height,t_smoothing,xlow,xhigh,style,thickness,compression,self.update_loading_label)
+                generate_spec_balance(output_name,input_audio,fps,res_width,res_height,t_smoothing,xlow,xhigh,style,thickness,compression,self.update_loading_label)
+
+        except Exception:
+            #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
+            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(fg="Red")
+            self.master.update()  # Force update to show the label
+
+    def update_loading_label(self, progress, total, text_state, text_message):
+        if text_state == True:
+            self.loading_label.config(text=text_message)
+        else:
+            self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
+        self.master.update()  # Update the GUI
+
+class HistogramWindow:
+    channel_values = ["Both (Merge to mono)", "Left", "Right"]
+    fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
+    width_values = [240,360,480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
+    height_values = [240,360,480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
+    style_values = ["Just Points", "Curve", "Filled Histogram"]
+    curve_style_values = ["Flat", "Linear", "FFT Resample"]
+
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Histogram Visualizer v0.04 by Aaron F. Bianchi")
+
+        # Variables to store user input with default values
+        self.output_name = tk.StringVar(value="output.mp4")
+        self.input_audio = tk.StringVar(value="")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
+        self.fps = tk.DoubleVar(value=60)
+        self.res_width = tk.IntVar(value=720)
+        self.res_height = tk.IntVar(value=720)
+        self.size_frame = tk.IntVar(value=1000)
+        self.bars = tk.IntVar(value=101)
+        self.sensitivity = tk.DoubleVar(value=0.1)
+        self.curve_style = tk.StringVar(value="Flat")
+        self.style = tk.StringVar(value="Filled Histogram")
+        self.thickness = tk.IntVar(value="1")
+        self.compression = tk.DoubleVar(value=0)
+
+        row_num = 0
+        # Create labels and Entry/Checkbutton widgets for input
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
+        row_num += 1
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
+        row_num += 1
+        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
+        row_num += 1
+        create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
+        row_num += 1
+        create_combobox_dual(self.master, "Resolution:", self.res_width, "x", self.res_height, row=row_num, values=self.width_values, values2=self.height_values, tip="Width x Height. Even numbers.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Window Size:", self.size_frame, row=row_num, tip="Number of samples of the histogram. Whole number.\nIf it's too low, it will be calculated with the FPS and sample rate.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Bars:", self.bars, row=row_num, tip="Number of bars of the histogram. Whole number.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Sensitivity:", self.sensitivity, row=row_num, tip="Makes smaller values more visible. Non-negative value.")
+        row_num += 1
+        create_combobox(self.master, "Curve Style:", self.curve_style, row=row_num, values=self.curve_style_values, tip=" ", readonly=True)
+        row_num += 1
+        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        row_num += 1
+        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
+        row_num += 1
+        create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
+        row_num += 1
+
+        # Create a Button to perform the action
+        self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
+        self.action_button.grid(row=row_num, column=1, pady=10)
+        #row_num += 1
+
+        # Create a Label for the loading message (initially hidden)
+        self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
+        self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
+        self.loading_label.grid_remove()  # Initially hide the loading label
+
+    def perform_action(self):
+        try:
+            # Show loading label during action
+            self.loading_label.grid()
+            self.loading_label.config(text=f"Loading...")
+            self.loading_label.config(fg="blue")
+            self.master.update()  # Force update to show the label
+
+            # Get values from Entry widgets and perform the final action
+            output_name = self.output_name.get()
+            input_audio = self.input_audio.get()
+            channel = self.channel.get()
+            fps = self.fps.get()
+            res_width = self.res_width.get()
+            res_height = self.res_height.get()
+            size_frame = self.size_frame.get()
+            bars = self.bars.get()
+            sensitivity = self.sensitivity.get()
+            style = self.style.get()
+            curve_style = self.curve_style.get()
+            thickness = self.thickness.get()
+            compression = self.compression.get()
+
+            error_flag = False
+            if fps <= 0:
+                self.loading_label.config(text=f"Error! Frame rate must be a positive number.")
+                error_flag = True
+            if res_width <= 0 or (res_width % 2) != 0 or res_height <= 0 or (res_height % 2) != 0:
+                self.loading_label.config(text=f"Error! Resolution values must be positive even numbers.")
+                error_flag = True
+            if size_frame <= 0 or (size_frame%1) != 0:
+                self.loading_label.config(text=f"Error! Window size must be a positive whole number.")
+                error_flag = True
+            if bars <= 0 or (bars % 1) != 0:
+                self.loading_label.config(text=f"Error! Number of bars must be a positive whole number.")
+                error_flag = True
+            if sensitivity < 0:
+                self.loading_label.config(text=f"Error! Sensitivity must be a non-negative number.")
+                error_flag = True
+            if thickness <= 0 or (thickness % 1) != 0:
+                self.loading_label.config(text=f"Error! Thickness must be a positive whole number.")
+                error_flag = True
+            if compression < 0:
+                self.loading_label.config(text=f"Error! Compression must be a non-negative number.")
+                error_flag = True
+
+            if error_flag == True:
+                self.loading_label.config(fg="Red")
+                self.master.update()  # Force update to show the label
+            else:
+                generate_histogram(output_name,input_audio,channel,fps,res_width,res_height, size_frame, bars, sensitivity, curve_style, style,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -2282,8 +2584,6 @@ class SpecBalanceWindow:
         self.master.update()  # Update the GUI
 
 class WaveformWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
@@ -2295,10 +2595,8 @@ class WaveformWindow:
         self.master.title("Short Waveform Visualizer v0.15 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps_2 = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=1920)
@@ -2311,11 +2609,9 @@ class WaveformWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
@@ -2363,9 +2659,7 @@ class WaveformWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             channel = self.channel.get()
             fps_2 = self.fps_2.get()
             res_width = self.res_width.get()
@@ -2415,8 +2709,7 @@ class WaveformWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_waveform(output_name, vidfor, input_audio, audfor, channel, fps_2, res_width, res_height, note, window_size, style, thickness, compression, self.update_loading_label)
+                generate_waveform(output_name,input_audio, channel, fps_2, res_width, res_height, note, window_size, style, thickness, compression, self.update_loading_label)
 
         except Exception:
             self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
@@ -2431,8 +2724,6 @@ class WaveformWindow:
         self.master.update()  # Update the GUI
 
 class LongWaveformWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
@@ -2444,10 +2735,8 @@ class LongWaveformWindow:
         self.master.title("Long Waveform Visualizer v0.05 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=1920)
@@ -2459,11 +2748,9 @@ class LongWaveformWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
@@ -2509,9 +2796,7 @@ class LongWaveformWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             channel = self.channel.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
@@ -2542,8 +2827,7 @@ class LongWaveformWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_waveform_long(output_name, vidfor, input_audio, audfor, channel, fps, res_width, res_height, window_size, style, thickness, compression, self.update_loading_label)
+                generate_waveform_long(output_name,input_audio, channel, fps, res_width, res_height, window_size, style, thickness, compression, self.update_loading_label)
 
         except Exception:
             self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
@@ -2558,8 +2842,6 @@ class LongWaveformWindow:
         self.master.update()  # Update the GUI
 
 class OscilloscopeWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -2569,10 +2851,8 @@ class OscilloscopeWindow:
         self.master.title("Oscilloscope Visualizer v0.06 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=720)
         self.res_height = tk.IntVar(value=720)
@@ -2582,11 +2862,9 @@ class OscilloscopeWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
-        row_num += 1  
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
+        row_num += 1
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -2619,9 +2897,7 @@ class OscilloscopeWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
             res_height = self.res_height.get()
@@ -2650,8 +2926,7 @@ class OscilloscopeWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_oscilloscope(output_name,vidfor,input_audio,audfor,fps, res_width, res_height,interpolation,thickness,compression,self.update_loading_label)
+                generate_oscilloscope(output_name,input_audio,fps, res_width, res_height,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -2667,8 +2942,6 @@ class OscilloscopeWindow:
         self.master.update()  # Update the GUI
         
 class PolarWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -2679,10 +2952,8 @@ class PolarWindow:
         self.master.title("Polar Visualizer v0.09 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=720)
@@ -2695,11 +2966,9 @@ class PolarWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
-        row_num += 1  
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
+        row_num += 1
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
@@ -2738,9 +3007,7 @@ class PolarWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             channel = self.channel.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
@@ -2790,8 +3057,7 @@ class PolarWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_polar(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height, offset, note,interpolation,thickness,compression,self.update_loading_label)
+                generate_polar(output_name,input_audio,channel,fps, res_width, res_height, offset, note,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -2807,8 +3073,6 @@ class PolarWindow:
         self.master.update()  # Update the GUI
         
 class PolarStereoWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -2818,10 +3082,8 @@ class PolarStereoWindow:
         self.master.title("Stereo Polar Visualizer v0.10 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=720)
         self.res_height = tk.IntVar(value=720)
@@ -2833,11 +3095,9 @@ class PolarStereoWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
-        row_num += 1  
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
+        row_num += 1
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -2874,9 +3134,7 @@ class PolarStereoWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
             res_height = self.res_height.get()
@@ -2925,8 +3183,7 @@ class PolarStereoWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_polar_stereo(output_name,vidfor,input_audio,audfor,fps, res_width, res_height, offset, note,interpolation,thickness,compression,self.update_loading_label)
+                generate_polar_stereo(output_name,input_audio,fps, res_width, res_height, offset, note,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -2942,21 +3199,17 @@ class PolarStereoWindow:
         self.master.update()  # Update the GUI
 
 class RecurrenceWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     channel_values = ["Both (Merge to mono)", "Both (Stereo)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     def __init__(self, master):
         self.master = master
-        self.master.title("Recurrence Plot Visualizer v0.04 by Aaron F. Bianchi")
+        self.master.title("Recurrence Plot Visualizer v0.10 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=720)
@@ -2968,14 +3221,12 @@ class RecurrenceWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
-        warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
+        #warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
+        #warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
+        #row_num += 1
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
-        row_num += 1  
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
@@ -3012,9 +3263,7 @@ class RecurrenceWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             channel = self.channel.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
@@ -3060,8 +3309,7 @@ class RecurrenceWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_recurrence(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height, note, threshold, thickness,compression,self.update_loading_label)
+                generate_recurrence(output_name,input_audio,channel,fps, res_width, res_height, note, threshold, thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -3077,8 +3325,6 @@ class RecurrenceWindow:
         self.master.update()  # Update the GUI
         
 class PoincareWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     channel_values = ["Both (Merge to mono)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -3089,10 +3335,8 @@ class PoincareWindow:
         self.master.title("Poincaré Plot Visualizer v0.01 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=720)
@@ -3104,11 +3348,9 @@ class PoincareWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
-        row_num += 1  
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
+        row_num += 1
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
@@ -3145,9 +3387,7 @@ class PoincareWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             channel = self.channel.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
@@ -3181,8 +3421,7 @@ class PoincareWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_poincare(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height,delay,interpolation,thickness,compression,self.update_loading_label)
+                generate_poincare(output_name,input_audio,channel,fps, res_width, res_height,delay,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -3198,8 +3437,6 @@ class PoincareWindow:
         self.master.update()  # Update the GUI
     
 class DelayEmbedWindow:
-    vidfor_values = [".mp4",".avi",".webm",".webp",".gif",".flv",".mkv",".mov",".wmv",".3gp"]
-    audfor_values = [".wav",".mp3",".aac",".flac",".ogg",".opus",".wma",".m4a"]
     channel_values = ["Both (Merge to mono)", "Both (Stereo)", "Left", "Right"]
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -3213,10 +3450,8 @@ class DelayEmbedWindow:
         self.master.title("Delay Embed Visualizer v0.05 by Aaron F. Bianchi")
 
         # Variables to store user input with default values
-        self.output_name = tk.StringVar(value="output")
-        self.vidfor = tk.StringVar(value=".mp4")
+        self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
-        self.audfor = tk.StringVar(value=".wav")
         self.channel = tk.StringVar(value="Both (Stereo)")
         self.fps = tk.DoubleVar(value=60)
         self.res_width = tk.IntVar(value=720)
@@ -3233,11 +3468,9 @@ class DelayEmbedWindow:
 
         row_num = 0
         # Create labels and Entry/Checkbutton widgets for input
-        create_input_widgets(self.master, "Output Video:", self.output_name, row=row_num, tip="                Specify the output file name.")
-        create_readonly_dropdown(self.master, self.vidfor, row=row_num, values=self.vidfor_values)
-        row_num += 1  
-        create_input_widgets(self.master, "Input Audio:", self.input_audio, row=row_num, tip="                Specify the name of the audio file.")
-        create_readonly_dropdown(self.master, self.audfor, row=row_num, values=self.audfor_values)
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
+        row_num += 1
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
         create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
@@ -3278,9 +3511,7 @@ class DelayEmbedWindow:
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
-            vidfor = self.vidfor.get()
             input_audio = self.input_audio.get()
-            audfor = self.audfor.get()
             channel = self.channel.get()
             fps = self.fps.get()
             res_width = self.res_width.get()
@@ -3319,8 +3550,7 @@ class DelayEmbedWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()  # Force update to show the label
             else:
-                # Do something with the input values (replace this with your final action)
-                generate_delay_embed(output_name,vidfor,input_audio,audfor,channel,fps, res_width, res_height,delay1,delay2, beta_p, beta_s, alfa_p, alfa_s,interpolation,thickness,compression,self.update_loading_label)
+                generate_delay_embed(output_name,input_audio,channel,fps, res_width, res_height,delay1,delay2, beta_p, beta_s, alfa_p, alfa_s,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -3341,19 +3571,16 @@ class HelpWindow:
         self.master.title("Help!!!!!!!!!!!!!111ONE")
         
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
         warning_label = tk.Label(self.master, text="HELP iM TRAPPED IN A VISUALIZER FACTORY IN  [R E D A C T E D]", fg="red")
         warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
         
         row_num += 1
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Donate for rescue", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
 
         row_num += 1
         warning_label = tk.Label(self.master, text="Actually no. This program is totally free. You don't have to pay anything.\n But if you feel the need, donations are appreciated :)", fg="black")
         warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
-        #row_num += 1
 
     def perform_action(self):
         webbrowser.open("https://aaron-f-bianchi.itch.io/lsao/purchase")
@@ -3361,6 +3588,9 @@ class HelpWindow:
 #################################################
 ################## MAIN WINDOW ##################
 #################################################
+
+def option_logo():
+    webbrowser.open("https://aaron-f-bianchi.itch.io/lsao/purchase")
 
 def option1():
     spectrum_window = tk.Toplevel(root)
@@ -3407,8 +3637,13 @@ def option11():
     DelayEmbedWindow(delay_embed_window)
 
 def option12():
-    help_window = tk.Toplevel(root)
-    HelpWindow(help_window)
+    histogram_window = tk.Toplevel(root)
+    HistogramWindow(histogram_window)
+
+#def optionhelp():
+#    help_window = tk.Toplevel(root)
+#    HelpWindow(help_window)
+    
 
 def update_gif(button, frames):
     if button.gif_playing: 
@@ -3433,7 +3668,8 @@ def stop_gif(event, button):
 
 #MAIN WINDOW
 root = tk.Tk()
-root.title("LSaO Visualizer v0.77")
+root.title("LSaO Visualizer v0.84")
+#root.geometry("700x600")
 
 def load_gif(path):
     gif = Image.open(path)
@@ -3447,133 +3683,154 @@ def load_gif(path):
         pass
     return frames
 
-# Load all GIFs
-gif1 = load_gif("resources/img_spec.gif")
-gif2 = load_gif("resources/img_swav.gif")
-gif3 = load_gif("resources/img_lwav.gif")
-gif4 = load_gif("resources/img_osc.gif")
-gif5 = load_gif("resources/img_specdB.gif")
-gif6 = load_gif("resources/img_polar.gif")
-gif7 = load_gif("resources/img_polar_stereo.gif")
-gif8 = load_gif("resources/img_spec_balance.gif")
-gif9 = load_gif("resources/img_recurrence.gif")
-gif10 = load_gif("resources/img_poincare.gif")
-gif11 = load_gif("resources/img_embed2.gif")
-gif12 = load_gif("resources/help_small.gif")
+gif1 = load_gif("resources/resized_img_spec.gif")
+gif2 = load_gif("resources/resized_img_swav.gif")
+gif3 = load_gif("resources/resized_img_lwav.gif")
+gif4 = load_gif("resources/resized_img_osc.gif")
+gif5 = load_gif("resources/resized_img_specdB.gif")
+gif6 = load_gif("resources/resized_img_polar.gif")
+gif7 = load_gif("resources/resized_img_polar_stereo.gif")
+gif8 = load_gif("resources/resized_img_spec_balance.gif")
+gif9 = load_gif("resources/resized_img_recurrence.gif")
+gif10 = load_gif("resources/resized_img_poincare.gif")
+gif11 = load_gif("resources/resized_img_embed2.gif")
+gif12 = load_gif("resources/resized_img_histogram.gif")
+logo = tk.PhotoImage(file="resources/lsao logotype.png")
 
-# Initial text label
+# INITIAL TEXT
 row_num = 0
-initial_text = "Usage:\n- Place your audio file in the same folder this executable is.\n- The generated video will be exported to the same folder. [WILL OVERWRITE]"
+initial_text = "USAGE:\n"
 if os.name == 'nt':
+    button_width = 110
+    button_height = 104
     print("Running on Windows")
-    initial_text = initial_text + "\n- FFmpeg needs to be manually installed and added to PATH.\n- The default Windows video player isn't going to play the generated videos correctly. Try a better video player."
+    initial_text = initial_text + "\n- FFmpeg has to be manually installed\n  and added to PATH.\n- The default Windows video player\n  isn't going to play the generated videos\n  correctly. Try a better video player."
 elif os.name == 'posix':
+    button_width = 90
+    button_height = 104
     print("Running on Linux or Unix-like system")
     initial_text = initial_text + "\n- FFmpeg is required."
 initial_label = tk.Label(root, text=initial_text, font=("Helvetica", 10), anchor='w', justify='left')
-initial_label.grid(row=row_num, column=0, columnspan=4, padx=10, pady=10, sticky="w")
+initial_label.grid(row=row_num, column=2, columnspan=2, padx=10, pady=10, sticky="w")
+
+# LOGO
+button_logo = tk.Label(root, image=logo, text="", justify='center')
+button_logo.grid(row=row_num, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+button_logo.bind("<Button-1>", lambda e: webbrowser.open("https://aaron-f-bianchi.itch.io/lsao"))
 
 row_num += 1
 col_num = 0
-# Button for option 1
-button_option1 = tk.Button(root, image=gif1[38], text="Linear Spectrum", compound=tk.BOTTOM, command=option1, width=130, height=130)
-button_option1.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
-button_option1.gif_playing = False  # Add a flag to track if the GIF is playing
-button_option1.current_frame = 38  # Track the current frame index
+# OPTION 1
+button_option1 = tk.Button(root, image=gif1[38], text="Linear Spectrum" , compound=tk.BOTTOM, command=option1, width=button_width, height=button_height)
+button_option1.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
+button_option1.gif_playing = False
+button_option1.current_frame = 38
 button_option1.bind("<Enter>", lambda e: start_gif(e, button_option1, gif1))
 button_option1.bind("<Leave>", lambda e: stop_gif(e, button_option1))
 
 col_num += 1
-# Button for option 5
-button_option5 = tk.Button(root, image=gif5[24], text="Linear Spec. (dB)", compound=tk.BOTTOM, command=option5, width=130, height=130)
-button_option5.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+# OPTION 5
+button_option5 = tk.Button(root, image=gif5[24], text="Linear Spec. (dB)", compound=tk.BOTTOM, command=option5, width=button_width, height=button_height)
+button_option5.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option5.gif_playing = False
 button_option5.current_frame = 24
 button_option5.bind("<Enter>", lambda e: start_gif(e, button_option5, gif5))
 button_option5.bind("<Leave>", lambda e: stop_gif(e, button_option5))
 
 col_num += 1
-# Button for option 8
-button_option8 = tk.Button(root, image=gif8[50], text="Spectral Balance", compound=tk.BOTTOM, command=option8, width=130, height=130)
-button_option8.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+# OPTION 8
+button_option8 = tk.Button(root, image=gif8[50], text="Spectral Balance", compound=tk.BOTTOM, command=option8, width=button_width, height=button_height)
+button_option8.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option8.gif_playing = False
 button_option8.current_frame = 50
 button_option8.bind("<Enter>", lambda e: start_gif(e, button_option8, gif8))
 button_option8.bind("<Leave>", lambda e: stop_gif(e, button_option8))
 
 col_num += 1
-# Button for option 2
-button_option2 = tk.Button(root, image=gif2[53], text="Short Waveform", compound=tk.BOTTOM, command=option2, width=130, height=130)
-button_option2.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+# OPTION 12
+button_option12 = tk.Button(root, image=gif12[5], text="Histogram", compound=tk.BOTTOM, command=option12, width=button_width, height=button_height)
+button_option12.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
+button_option12.gif_playing = False
+button_option12.current_frame = 5
+button_option12.bind("<Enter>", lambda e: start_gif(e, button_option12, gif12))
+button_option12.bind("<Leave>", lambda e: stop_gif(e, button_option12))
+
+row_num += 1
+col_num = 0
+
+# OPTION 2
+button_option2 = tk.Button(root, image=gif2[53], text="Short Waveform", compound=tk.BOTTOM, command=option2, width=button_width, height=button_height)
+button_option2.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option2.gif_playing = False
 button_option2.current_frame = 53
 button_option2.bind("<Enter>", lambda e: start_gif(e, button_option2, gif2))
 button_option2.bind("<Leave>", lambda e: stop_gif(e, button_option2))
 
-row_num += 1
-col_num = 0
-# Button for option 3
-button_option3 = tk.Button(root, image=gif3[30], text="Long Waveform", compound=tk.BOTTOM, command=option3, width=130, height=130)
-button_option3.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+col_num += 1
+# OPTION 3
+button_option3 = tk.Button(root, image=gif3[30], text="Long Waveform", compound=tk.BOTTOM, command=option3, width=button_width, height=button_height)
+button_option3.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option3.gif_playing = False
 button_option3.current_frame = 30
 button_option3.bind("<Enter>", lambda e: start_gif(e, button_option3, gif3))
 button_option3.bind("<Leave>", lambda e: stop_gif(e, button_option3))
 
 col_num += 1
-# Button for option 9
-button_option9 = tk.Button(root, image=gif9[111], text="Recurrence", compound=tk.BOTTOM, command=option9, width=130, height=130)
-button_option9.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+# OPTION 9
+button_option9 = tk.Button(root, image=gif9[111], text="Recurrence", compound=tk.BOTTOM, command=option9, width=button_width, height=button_height)
+button_option9.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option9.gif_playing = False
 button_option9.current_frame = 111
 button_option9.bind("<Enter>", lambda e: start_gif(e, button_option9, gif9))
 button_option9.bind("<Leave>", lambda e: stop_gif(e, button_option9))
 
 col_num += 1
-# Button for option 4
-button_option4 = tk.Button(root, image=gif4[109], text="Oscilloscope", compound=tk.BOTTOM, command=option4, width=130, height=130)
-button_option4.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+# OPTION 4
+button_option4 = tk.Button(root, image=gif4[109], text="Oscilloscope", compound=tk.BOTTOM, command=option4, width=button_width, height=button_height)
+button_option4.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option4.gif_playing = False
 button_option4.current_frame = 109
 button_option4.bind("<Enter>", lambda e: start_gif(e, button_option4, gif4))
 button_option4.bind("<Leave>", lambda e: stop_gif(e, button_option4))
 
-col_num += 1
-# Button for option 6
-button_option6 = tk.Button(root, image=gif6[228], text="Polar (Mono)", compound=tk.BOTTOM, command=option6, width=130, height=130)
-button_option6.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="w")
+row_num += 1
+col_num = 0
+
+# OPTION 6
+button_option6 = tk.Button(root, image=gif6[228], text="Polar (Mono)", compound=tk.BOTTOM, command=option6, width=button_width, height=button_height)
+button_option6.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option6.gif_playing = False
 button_option6.current_frame = 228
 button_option6.bind("<Enter>", lambda e: start_gif(e, button_option6, gif6))
 button_option6.bind("<Leave>", lambda e: stop_gif(e, button_option6))
 
-row_num += 1
-col_num = 0
-# Button for option 7
-button_option7 = tk.Button(root, image=gif7[575], text="Polar (Stereo)", compound=tk.BOTTOM, command=option7, width=130, height=130)
-button_option7.grid(row=row_num, column=col_num, columnspan=2, padx=65, pady=0, sticky="w")
+col_num += 1
+# OPTION 7
+button_option7 = tk.Button(root, image=gif7[575], text="Polar (Stereo)", compound=tk.BOTTOM, command=option7, width=button_width, height=button_height)
+button_option7.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option7.gif_playing = False
 button_option7.current_frame = 575
 button_option7.bind("<Enter>", lambda e: start_gif(e, button_option7, gif7))
 button_option7.bind("<Leave>", lambda e: stop_gif(e, button_option7))
 
 col_num += 1
-# Button for option 10
-button_option10 = tk.Button(root, image=gif10[41], text="Poincaré", compound=tk.BOTTOM, command=option10, width=130, height=130)
-button_option10.grid(row=row_num, column=col_num, columnspan=2, padx=65, pady=0, sticky="w")
+# OPTION 10
+button_option10 = tk.Button(root, image=gif10[41], text="Poincaré", compound=tk.BOTTOM, command=option10, width=button_width, height=button_height)
+button_option10.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option10.gif_playing = False
 button_option10.current_frame = 41
 button_option10.bind("<Enter>", lambda e: start_gif(e, button_option10, gif10))
 button_option10.bind("<Leave>", lambda e: stop_gif(e, button_option10))
 
 col_num += 1
-# Button for option 11
-button_option11 = tk.Button(root, image=gif11[97], text="Delay Embed", compound=tk.BOTTOM, command=option11, width=130, height=130)
-button_option11.grid(row=row_num, column=col_num, columnspan=2, padx=65, pady=0, sticky="w")
+# OPTION 11
+button_option11 = tk.Button(root, image=gif11[97], text="Delay Embed", compound=tk.BOTTOM, command=option11, width=button_width, height=button_height)
+button_option11.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
 button_option11.gif_playing = False
 button_option11.current_frame = 97
 button_option11.bind("<Enter>", lambda e: start_gif(e, button_option11, gif11))
 button_option11.bind("<Leave>", lambda e: stop_gif(e, button_option11))
+
 
 # col_num += 1
 # # Button for option 12
@@ -3586,8 +3843,8 @@ button_option11.bind("<Leave>", lambda e: stop_gif(e, button_option11))
 
 row_num += 1
 # Credits label
-credits_label = tk.Label(root, text="© 2025 Aaron F. Bianchi - Linear Spectrum and Oscilloscope Visualizer", font=("Helvetica", 10), fg="blue", justify='center')
+credits_label = tk.Label(root, text="© 2025 Aaron F. Bianchi", font=("Helvetica", 10), fg="blue", justify='center')
 credits_label.grid(row=row_num, column=0, columnspan=5, pady=5, sticky="ew") 
-credits_label.bind("<Button-1>", lambda e: webbrowser.open("aaronfbianchi.github.io"))
+credits_label.bind("<Button-1>", lambda e: webbrowser.open("https://aaronfbianchi.github.io/"))
 
 root.mainloop()
