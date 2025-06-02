@@ -7,12 +7,6 @@ This tool can export videos of a linear spectrum, tuned short waveform, long wav
 
 Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white visualizer over a black background for further processing with a video editor of your preference.
 
-Download
----------------------
-You can download it [here](https://aaron-f-bianchi.itch.io/lsao/purchase).
-
-Bunch of demo GIFs
----------------------
 Linear Spectrum:
 <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
   <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif"
@@ -79,6 +73,12 @@ Poincaré Plot and Delay Embedding Plot:
        alt="Example Delay Embedding Plot GIF"
        style="max-width: 100%; height: auto; margin: 0px;">
 </div>
+Histogram Visualizer:
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-histogram.gif"
+       alt="Example Histogram GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+</div>
 
 
 Bunch of demo videos
@@ -95,6 +95,10 @@ Why?
 ---------------------
 This small project started due to the omnipresence of logarithmic spectrum visualizers and the apparent absence of linear spectrum visualizers (apart from the one in After Effects, but who wants to install an Adobe product anyway).
 
+Download
+---------------------
+You can download it [here](https://github.com/aaronfbianchi/LSaO-visualizer/releases).
+
 Installation
 ---------------------
 You don't need to install it. Just double click the executable.
@@ -102,7 +106,7 @@ You don't need to install it. Just double click the executable.
 Usage
 ---------------------
 * FFmpeg is required.
-* The oscilloscope generator only works with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
+* The Stereo Oscilloscope generator only works with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
 
 Tips if using on Windows
 -------------------------
