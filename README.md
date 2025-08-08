@@ -79,6 +79,12 @@ Histogram Visualizer:
        alt="Example Histogram GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+Chladni Plate Visualizer:
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-chladni.gif"
+       alt="Example Chladni Plate GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+</div>
 
 
 Bunch of demo videos
