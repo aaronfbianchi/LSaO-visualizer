@@ -12,7 +12,7 @@ import numpy as np
 from scipy import signal
 import subprocess
 import os
-from scipy.signal import butter, filtfilt#, sosfreqz, sosfreqresp, sos2tf, sosfilter
+#from scipy.signal import butter, filtfilt#, sosfreqz, sosfreqresp, sos2tf, sosfilter
 import webbrowser
 from PIL import Image, ImageTk
 
@@ -1452,7 +1452,7 @@ def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_heig
         audioR = song.T
         print(f"audioL {audioL.shape}")
         print(f"audioR {audioR.shape}")
-    
+
     gmax = np.max([np.max(np.abs(audioL)), np.max(np.abs(audioR))])
     #print(gmax)
     audioL = (audioL/gmax).T ##TRANSPOSITION AND NORMALIZATION
@@ -1530,6 +1530,7 @@ def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_heig
     ]
     
     ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    frameData = np.zeros((res_width, res_height), dtype=bool)
     j = 0
     print("no")
     for i in indexes2:
@@ -1540,7 +1541,6 @@ def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_heig
         #print("yes")
         #print(f"audioLseg {audioLseg.shape}")
         #print(f"audioRseg {audioRseg.shape}")
-        frameData = np.zeros((res_width, res_height), dtype=bool)
 
         audioLseg = audioLseg[:, np.newaxis]
         audioRseg = audioRseg[:, np.newaxis]
@@ -1578,6 +1578,166 @@ def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_heig
     callback_function(i,n_frames, text_state = True, text_message = "Joining frames...")
     convert_vid(input_audio, output_name, vidfor)
         
+    print(f"Video saved to {output_name}")
+    os.remove("resources/temporary_file.mp4")
+    callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
+    return 0
+
+def generate_chladni(output_name,input_audio,channel,fps, res_width, res_height, mode, zoom, threshold, thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
+    song, fs = read_audio_samples(input_audio)
+    song = song.T.astype(np.float16)
+
+    if song.shape[0] == 2:
+        if channel == "Both (Stereo)":
+            audioL = song[0,:].T
+            audioR = song[1,:].T
+            print(f"audioooooL {audioL.shape}")
+            print(f"audioooooR {audioR.shape}")
+        elif channel == "Both (Merge to mono)":
+            audioL = np.mean(song, axis = 0).T
+            audioR = np.mean(song, axis = 0).T
+            print(f"audioooooL {audioL.shape}")
+            print(f"audioooooR {audioR.shape}")
+        elif channel == "Left":
+            audioL = song[0,:].T
+            audioR = song[0,:].T
+        elif channel == "Right":
+            audioL = song[1,:].T
+            audioR = song[1,:].T
+    else:
+        audioL = song.T
+        audioR = song.T
+        print(f"audioL {audioL.shape}")
+        print(f"audioR {audioR.shape}")
+
+    #if fil: #HIGH-PASS FILTER FOR HAVING MORE TRANSIENTS
+    N = 5
+    h = np.cos(np.linspace(0,2*np.pi,N)) - 1
+    h[int((N-1)/2)] = -sum(h) + h[int((N-1)/2)]
+    audioL = np.convolve(audioL, h, mode = 'same')
+    audioR = np.convolve(audioR, h, mode = 'same')
+
+    gmax = np.max([np.max(np.abs(audioL)), np.max(np.abs(audioR))])
+    #print(gmax)
+    audioL = (audioL/gmax).T ##TRANSPOSITION AND NORMALIZATION
+    audioR = (audioR/gmax).T ##TRANSPOSITION AND NORMALIZATION
+
+    duration = len(audioL)/fs
+    size_frame = int(np.round(fs/fps))
+    n_frames = int(np.ceil(duration*fps))
+
+    audioL = np.pad(audioL, (0, int(size_frame*n_frames) - len(audioL))) ## TO COMPLETE THE LAST FRAME
+    audioR = np.pad(audioR, (0, int(size_frame*n_frames) - len(audioR))) ## TO COMPLETE THE LAST FRAME
+    xaxis = np.linspace(1/res_width , res_width/zoom , int(res_width/2)).astype(np.float32) #solo el primer cuadrante
+    yaxis = np.linspace(1/res_height , res_height/zoom , int(res_height/2)).astype(np.float32) #solo el primer cuadrante
+    Xmap, Ymap = np.meshgrid(xaxis, yaxis)
+    Xmap = np.pi * Xmap.astype(np.float32)
+    Ymap = np.pi * Ymap.astype(np.float32)
+    print(Xmap)
+    print(Ymap)
+
+    print(f"Xmap {Xmap.shape}")
+    #print(xaxis)
+
+    cmd = [
+        'ffmpeg',
+        '-y',  # Overwrite output file if it exists
+        '-f', 'rawvideo',
+        '-s', '{}x{}'.format(res_width, res_height),
+        '-pix_fmt', 'gray',  # Use grayscale pixel format
+        '-r', str(fps),  # Frames per second
+        '-i', '-',  # Read input from stdin
+        '-c:v', 'libx264',  # Video codec
+        '-preset', 'medium',  # Encoding speed vs compression ratio
+        '-crf', str(compression),  # Constant Rate Factor (0-51): Lower values mean better quality
+        '-pix_fmt', 'yuv420p',  # Pixel format for compatibility
+        'resources/temporary_file.mp4'
+    ]
+
+    chladniQ1 = np.zeros((int(res_width/2), int(res_height/2)), dtype=bool)
+    chladniQ2 = chladniQ1
+    chladniQ3 = chladniQ1
+    chladniQ4 = chladniQ1
+
+    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    frameData = np.zeros((res_width, res_height), dtype=bool)
+    j = 0
+    for i in range(n_frames):
+        envL = 10*np.max(audioL[round(i*size_frame) : round(i*size_frame)+int(size_frame)]) #DETERMINAR LA ENVOLVENTE
+        envR = 10*np.max(audioR[round(i*size_frame) : round(i*size_frame)+int(size_frame)]) #DETERMINAR LA ENVOLVENTE
+
+        a = 5*(2+np.sin(1+i/n_frames*duration))
+        b = 5*(2-np.cos(1+i/n_frames*duration))
+
+        match mode:
+            case "Sine":
+                trgXL = np.sin(Xmap / envL*a)
+                trgXR = np.sin(Xmap / envR*b)
+                trgYL = np.sin(Ymap / envL*a)
+                trgYR = np.sin(Ymap / envR*b)
+            case "Cosine":
+                trgXL = np.cos(Xmap / envL*a)
+                trgXR = np.cos(Xmap / envR*b)
+                trgYL = np.cos(Ymap / envL*a)
+                trgYR = np.cos(Ymap / envR*b)
+            case "Tangent":
+                trgXL = np.tan(Xmap / envL*a)
+                trgXR = np.tan(Xmap / envR*b)
+                trgYL = np.tan(Ymap / envL*a)
+                trgYR = np.tan(Ymap / envR*b)
+            case "Cotangent":
+                trgXL = 1/np.tan(Xmap / envL*a)
+                trgXR = 1/np.tan(Xmap / envR*b)
+                trgYL = 1/np.tan(Ymap / envL*a)
+                trgYR = 1/np.tan(Ymap / envR*b)
+            case "Secant":
+                trgXL = 1/np.cos(Xmap / envL*a)
+                trgXR = 1/np.cos(Xmap / envR*b)
+                trgYL = 1/np.cos(Ymap / envL*a)
+                trgYR = 1/np.cos(Ymap / envR*b)
+            case "Cosecant":
+                trgXL = 1/np.sin(Xmap / envL*a)
+                trgXR = 1/np.sin(Xmap / envR*b)
+                trgYL = 1/np.sin(Ymap / envL*a)
+                trgYR = 1/np.sin(Ymap / envR*b)
+
+        if threshold >= 0:
+            chladniQ1 = (np.abs(a * trgXL * trgYR + b * trgXR * trgYL) < threshold)
+        else:
+            chladniQ1 = ~(np.abs(a * trgXL * trgYR + b * trgXR * trgYL) < -threshold)
+
+        chladniQ2 = np.fliplr(chladniQ1)
+        chladniQ3 = np.flipud(chladniQ1)
+        chladniQ4 = np.flipud(chladniQ2)
+
+        frameData = np.vstack((np.hstack((chladniQ4, chladniQ3)), np.hstack((chladniQ2, chladniQ1))))
+
+        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
+        if thickness > 1:
+            for th in range(thickness - 1):
+                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
+                shifted[-1, :] = False ## CLEARS BOTTOM ROW
+                #frameData = (frameData + shifted)
+                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
+                shifted2[:, -1] = False ## CLEARS LAST COLUMN
+                frameData = frameData | shifted | shifted2
+
+        frameData = frameData.astype(np.uint8) * 255
+
+        ffmpeg_process.stdin.write(frameData)
+        j += 1
+        print(f"{j+1}/{n_frames}")
+        callback_function(j+1,n_frames, text_state = False, text_message = " ")
+
+    ffmpeg_process.stdin.close()
+    ffmpeg_process.wait()
+
+    callback_function(i,n_frames, text_state = True, text_message = "Joining frames...")
+    convert_vid(input_audio, output_name, vidfor)
+
     print(f"Video saved to {output_name}")
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
@@ -1684,7 +1844,6 @@ def generate_poincare(output_name,input_audio,channel ,fps, res_width, res_heigh
     
     ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
-    # Generate and save each frame as an image
     for i in range(n_frames):
         frameData = np.zeros((res_height, res_width), dtype=bool)
 
@@ -1899,7 +2058,6 @@ def note_to_frequency(note):
     if note.lstrip('-').replace('.', '', 1).isdigit():    
         frequency = float(note)
     else:
-        # Dictionary mapping note names to MIDI note numbers
         note_to_midi = {'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
                         'E': 4, 'Fb': 4, 'E#': 5, 'F': 5, 'F#': 6, 'Gb': 6,
                         'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10,
@@ -1909,13 +2067,8 @@ def note_to_frequency(note):
                         'g': 7, 'g#': 8, 'ab': 8, 'a': 9, 'a#': 10, 'bb': 10,
                         'b': 11, 'cb': 11, 'b#': 0}
 
-        # Extract note name and octave from the input string
         note_name, octave_str = note[:-1], note[-1]
-
-        # Calculate MIDI note number
         midi_note = note_to_midi[note_name] + (int(octave_str) + 1) * 12
-
-        # Calculate frequency using the MIDI note number
         frequency = 440 * (2 ** ((midi_note - 69) / 12))
 
     return frequency
@@ -1935,9 +2088,8 @@ def create_input_widgets_num(master, label_text, variable, row, tip):
     tk.Label(master, text=label_text).grid(row=row, column=0, padx=10, pady=5, sticky="e")
     entry = tk.Entry(master, textvariable=variable, validate="key", validatecommand=(master.register(validate_numeric), "%P"))
     entry.grid(row=row, column=1, padx=10, pady=5, sticky="we")
-    entry.config(width=10)  # Adjust the width as needed
+    entry.config(width=10)
 
-    # Create a Label for tip text
     tip_label = tk.Label(master, text=tip, font=("Helvetica", 10), fg="gray", anchor="w", justify="left")
     tip_label.grid(row=row, column=2, padx=5, pady=5, sticky="w")
 
@@ -1945,9 +2097,8 @@ def create_input_widgets(master, label_text, variable, row, tip):
     tk.Label(master, text=label_text).grid(row=row, column=0, padx=10, pady=5, sticky="e")
     entry = tk.Entry(master, textvariable=variable, validate="key")
     entry.grid(row=row, column=1, padx=10, pady=5, sticky="we")
-    entry.config(width=10)  # Adjust the width as needed
+    entry.config(width=10)
 
-    # Create a Label for tip text
     tip_label = tk.Label(master, text=tip, font=("Helvetica", 10), fg="gray", anchor="w", justify="left")
     tip_label.grid(row=row, column=2, padx=5, pady=5, sticky="w")
 
@@ -1955,14 +2106,14 @@ def create_readonly_dropdown(master, variable, row, values):
     combobox_var = tk.StringVar()
     combobox = ttk.Combobox(master, textvariable=variable, values=values, state='readonly')
     combobox.grid(row=row, column=2, padx=0, pady=5, sticky="w")
-    combobox.current(0)  # Set the initial selection
+    combobox.current(0)
     combobox.config(width=6)
 
 def create_checkbutton(master, label_text, variable, row, tip):
     checkbutton = tk.Checkbutton(master, text=label_text, variable=variable)
     checkbutton.grid(row=row, column=1, padx=10, pady=5, sticky="w")
 
-    # Create a Label for tip text
+
     tip_label = tk.Label(master, text=tip, font=("Helvetica", 10), fg="gray", anchor="w", justify="left")
     tip_label.grid(row=row, column=2, padx=5, pady=5, sticky="w")
 
@@ -1974,7 +2125,7 @@ def create_combobox(master, label_text, variable, row, values, tip=None, readonl
     else:
         combobox = ttk.Combobox(master, textvariable=variable, values=values, validate="key", validatecommand=(master.register(validate_numeric), "%P"))
     combobox.grid(row=row, column=1, padx=10, pady=5, sticky='we')
-    combobox.config(width=10)  # Adjust the width as needed
+    combobox.config(width=10)
     if tip:
         tooltip = tk.Label(master, text=tip, font=("Helvetica", 10), fg='gray', anchor="w", justify="left")
         tooltip.grid(row=row, column=2, padx=5, pady=5, sticky='w')
@@ -1985,28 +2136,26 @@ def create_combobox_dual(master, label_text, variable, divider, variable2, row, 
 
     combobox = ttk.Combobox(master, textvariable=variable, values=values, validate="key", validatecommand=(master.register(validate_numeric), "%P"))
     combobox.grid(row=row, column=1, padx=10, pady=5, sticky='w')
-    combobox.config(width=6)  # Adjust the width as needed
+    combobox.config(width=6)
 
     label2 = tk.Label(master, text=divider)
     label2.grid(row=row, column=1, padx=100, pady=5, sticky='w')
 
     combobox2 = ttk.Combobox(master, textvariable=variable2, values=values2, validate="key", validatecommand=(master.register(validate_numeric), "%P"))
     combobox2.grid(row=row, column=1, padx=10, pady=5, sticky='e')
-    combobox2.config(width=6)  # Adjust the width as needed
+    combobox2.config(width=6)
     if tip:
         tooltip = tk.Label(master, text=tip, font=("Helvetica", 10), fg='gray', anchor="w", justify="left")
         tooltip.grid(row=row, column=2, padx=5, pady=5, sticky='w')
 
 def validate_numeric(value):
-    # Validation function to allow numeric input (including negatives)
     if value == '' or value == '-':
-        return True  # Allow empty input or just a negative sign
+        return True
     try:
-        float(value)  # Try converting to a float
-        return True   # If successful, return True
+        float(value)
+        return True
     except ValueError:
-        return False  # If conversion fails, return False
-
+        return False
 
 def create_file_input_row(parent, label_text, row, path_var=None):
     label = tk.Label(parent, text=label_text)
@@ -2025,7 +2174,6 @@ def create_file_input_row(parent, label_text, row, path_var=None):
             ]
         )
         if file_path:
-            # If a path_var is provided, set the value of path_var to the file path
             if path_var is not None:
                 path_var.set(file_path)
             else:
@@ -2042,7 +2190,6 @@ def create_file_output_row(parent, label_text, row, path_var=None):
     label = tk.Label(parent, text=label_text)
     label.grid(row=row, column=0, padx=5, pady=5, sticky="e")
 
-    # Bind the entry to the path_var if provided
     entry = tk.Entry(parent, textvariable=path_var)
     entry.grid(row=row, column=1, columnspan = 2, padx=92, pady=5, sticky="w")
     entry.config(width=60)
@@ -2057,7 +2204,6 @@ def create_file_output_row(parent, label_text, row, path_var=None):
             ]
         )
         if file_path:
-            # If a path_var is provided, set the value of path_var to the file path
             if path_var is not None:
                 path_var.set(file_path)
             else:
@@ -2088,7 +2234,6 @@ class SpectrumWindow:
         self.master = master
         self.master.title("Linear Spectrum Visualizer v0.19 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
@@ -2107,7 +2252,6 @@ class SpectrumWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -2137,25 +2281,21 @@ class SpectrumWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
 
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
 
-        # Create a Label for the loading message (initially hidden)
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(text=f"Loading...")
             self.loading_label.config(fg="blue")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -2195,15 +2335,15 @@ class SpectrumWindow:
 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_spectrum(output_name,input_audio,channel,fps,res_width,res_height,t_smoothing,xlow,xhigh,limt_junk,attenuation_steep,junk_threshold,threshold_steep,style,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
     def update_loading_label(self, progress, total, text_state, text_message):
         if text_state == True:
@@ -2225,7 +2365,6 @@ class SpectrumdBWindow:
         self.master = master
         self.master.title("Linear Spectrum Visualizer (dB) v0.12 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
@@ -2241,7 +2380,6 @@ class SpectrumdBWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -2265,24 +2403,22 @@ class SpectrumdBWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
 
-        # Create a Button to perform the action
+
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
 
-        # Create a Label for the loading message (initially hidden)
+
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(text=f"Loading...")
             self.loading_label.config(fg="blue")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -2322,14 +2458,14 @@ class SpectrumdBWindow:
 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_spectrum_dB(output_name,input_audio, channel, fps, res_width, res_height, t_smoothing, xlow, xhigh, min_dB, style, thickness, compression, self.update_loading_label)
 
         except Exception:
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
     def update_loading_label(self, progress, total, text_state, text_message):
         if text_state == True:
@@ -2350,7 +2486,6 @@ class SpecBalanceWindow:
         self.master = master
         self.master.title("Linear Spectral Balance Visualizer v0.03 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.fps = tk.DoubleVar(value=60)
@@ -2364,7 +2499,6 @@ class SpecBalanceWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -2384,23 +2518,22 @@ class SpecBalanceWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
 
-        # Create a Button to perform the action
+
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
 
-        # Create a Label for the loading message (initially hidden)
+
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(text=f"Loading...")
             self.loading_label.config(fg="blue")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
             # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
@@ -2437,15 +2570,15 @@ class SpecBalanceWindow:
 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_spec_balance(output_name,input_audio,fps,res_width,res_height,t_smoothing,xlow,xhigh,style,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
     def update_loading_label(self, progress, total, text_state, text_message):
         if text_state == True:
@@ -2466,7 +2599,6 @@ class HistogramWindow:
         self.master = master
         self.master.title("Histogram Visualizer v0.04 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
@@ -2482,7 +2614,6 @@ class HistogramWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -2508,25 +2639,21 @@ class HistogramWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
 
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
 
-        # Create a Label for the loading message (initially hidden)
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(text=f"Loading...")
             self.loading_label.config(fg="blue")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -2566,15 +2693,15 @@ class HistogramWindow:
 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_histogram(output_name,input_audio,channel,fps,res_width,res_height, size_frame, bars, sensitivity, curve_style, style,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
     def update_loading_label(self, progress, total, text_state, text_message):
         if text_state == True:
@@ -2594,7 +2721,6 @@ class WaveformWindow:
         self.master = master
         self.master.title("Short Waveform Visualizer v0.15 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
@@ -2608,7 +2734,6 @@ class WaveformWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -2621,7 +2746,7 @@ class WaveformWindow:
         row_num += 1
         create_input_widgets(self.master, "Tuning:", self.note, row=row_num, tip="Set a note to tune the oscilloscope to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
         row_num += 1
-        create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="Set the number of samples to be displayed per frame. Whole number.\nRecommended minimum is the width of the video.\nFor higher than ~20000 I recommend using the long waveform.")
+        create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="The smaller this is, the faster the waveform will move. Whole number.\nRecommended minimum is the width of the video.\nFor higher than ~20000 I recommend using the long waveform.")
         row_num += 1
         create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
@@ -2630,18 +2755,15 @@ class WaveformWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
 
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
 
-        # Create a Label for the loading message (initially hidden)
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def validate_numeric(self, value):
         try:
-            # Allow empty string or integer values
             if not value:
                 return True
             float(value)
@@ -2651,13 +2773,11 @@ class WaveformWindow:
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(fg="blue")
             self.loading_label.config(text=f"Loading...")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -2707,14 +2827,14 @@ class WaveformWindow:
 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_waveform(output_name,input_audio, channel, fps_2, res_width, res_height, note, window_size, style, thickness, compression, self.update_loading_label)
 
         except Exception:
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
     def update_loading_label(self, progress, total, text_state, text_message):
         if text_state == True:
@@ -2734,7 +2854,7 @@ class LongWaveformWindow:
         self.master = master
         self.master.title("Long Waveform Visualizer v0.05 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
+
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
@@ -2747,7 +2867,7 @@ class LongWaveformWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
+
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -2758,7 +2878,7 @@ class LongWaveformWindow:
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width, "x", self.res_height, row=row_num, values=self.width_values, values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="Set the number of samples to be displayed per frame. Whole number.")
+        create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="The smaller this is, the faster the waveform will move. Whole number.")
         row_num += 1
         create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
@@ -2767,18 +2887,17 @@ class LongWaveformWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
 
-        # Create a Button to perform the action
+
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
 
-        # Create a Label for the loading message (initially hidden)
+
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def validate_numeric(self, value):
         try:
-            # Allow empty string or integer values
             if not value:
                 return True
             float(value)
@@ -2788,13 +2907,11 @@ class LongWaveformWindow:
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(fg="blue")
             self.loading_label.config(text=f"Loading...")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -2825,14 +2942,14 @@ class LongWaveformWindow:
 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_waveform_long(output_name,input_audio, channel, fps, res_width, res_height, window_size, style, thickness, compression, self.update_loading_label)
 
         except Exception:
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
     def update_loading_label(self, progress, total, text_state, text_message):
         if text_state == True:
@@ -2850,7 +2967,7 @@ class OscilloscopeWindow:
         self.master = master
         self.master.title("Oscilloscope Visualizer v0.06 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
+
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.fps = tk.DoubleVar(value=60)
@@ -2861,7 +2978,7 @@ class OscilloscopeWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
+
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -2877,25 +2994,23 @@ class OscilloscopeWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
         
-        # Create a Button to perform the action
+
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
         
-        # Create a Label for the loading message (initially hidden)
+
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(fg="blue")
             self.loading_label.config(text=f"Loading...")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             fps = self.fps.get()
@@ -2924,15 +3039,15 @@ class OscilloscopeWindow:
                 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_oscilloscope(output_name,input_audio,fps, res_width, res_height,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
             
     def update_loading_label(self, progress, total, text_state, text_message):       
         if text_state == True:
@@ -2951,7 +3066,7 @@ class PolarWindow:
         self.master = master
         self.master.title("Polar Visualizer v0.09 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
+
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
@@ -2965,7 +3080,7 @@ class PolarWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
+
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -2987,25 +3102,21 @@ class PolarWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
         
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
         
-        # Create a Label for the loading message (initially hidden)
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(fg="blue")
             self.loading_label.config(text=f"Loading...")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -3055,15 +3166,15 @@ class PolarWindow:
                 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_polar(output_name,input_audio,channel,fps, res_width, res_height, offset, note,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
             
     def update_loading_label(self, progress, total, text_state, text_message):       
         if text_state == True:
@@ -3081,7 +3192,6 @@ class PolarStereoWindow:
         self.master = master
         self.master.title("Stereo Polar Visualizer v0.10 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.fps = tk.DoubleVar(value=60)
@@ -3094,7 +3204,7 @@ class PolarStereoWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
+
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3114,25 +3224,21 @@ class PolarStereoWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
         
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
         
-        # Create a Label for the loading message (initially hidden)
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(fg="blue")
             self.loading_label.config(text=f"Loading...")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             fps = self.fps.get()
@@ -3181,15 +3287,15 @@ class PolarStereoWindow:
                 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_polar_stereo(output_name,input_audio,fps, res_width, res_height, offset, note,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
             
     def update_loading_label(self, progress, total, text_state, text_message):       
         if text_state == True:
@@ -3207,7 +3313,6 @@ class RecurrenceWindow:
         self.master = master
         self.master.title("Recurrence Plot Visualizer v0.10 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
@@ -3220,7 +3325,7 @@ class RecurrenceWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
+
         #warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
         #warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
         #row_num += 1
@@ -3243,25 +3348,21 @@ class RecurrenceWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
         
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
         
-        # Create a Label for the loading message (initially hidden)
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(fg="blue")
             self.loading_label.config(text=f"Loading...")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -3307,17 +3408,129 @@ class RecurrenceWindow:
                 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_recurrence(output_name,input_audio,channel,fps, res_width, res_height, note, threshold, thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
             
     def update_loading_label(self, progress, total, text_state, text_message):       
+        if text_state == True:
+            self.loading_label.config(text=text_message)
+        else:
+            self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
+        self.master.update()  # Update the GUI
+
+class ChladniWindow:
+    channel_values = ["Both (Merge to mono)", "Both (Stereo)", "Left", "Right"]
+    fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
+    width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    mode_values = ["Sine", "Cosine", "Tangent", "Cotangent", "Secant", "Cosecant"]
+    def __init__(self, master):
+        self.master = master
+        self.master.title("False Chladni Plate Visualizer v0.06 by Aaron F. Bianchi")
+
+        self.output_name = tk.StringVar(value="output.mp4")
+        self.input_audio = tk.StringVar(value="")
+        self.channel = tk.StringVar(value="Both (Stereo)")
+        self.fps = tk.DoubleVar(value=60)
+        self.res_width = tk.IntVar(value=720)
+        self.res_height = tk.IntVar(value=720)
+        self.mode = tk.StringVar(value="Cosine")
+        self.zoom = tk.DoubleVar(value=1000)
+        self.threshold = tk.DoubleVar(value=0.5)
+        self.thickness = tk.IntVar(value="1")
+        self.compression = tk.DoubleVar(value=0)
+
+        row_num = 0
+        #warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
+        #warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
+        #row_num += 1
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
+        row_num += 1
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
+        row_num += 1
+        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        row_num += 1
+        create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
+        row_num += 1
+        create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
+        row_num += 1
+        create_combobox(self.master, "Mode:", self.mode, row=row_num, values=self.mode_values, tip="Try these for different shapes in your video", readonly=True)
+        row_num += 1
+        create_input_widgets(self.master, "Zoom:", self.zoom, row=row_num, tip="Zoom in the Chladni plate.")
+        row_num += 1
+        create_input_widgets(self.master, "Threshold:", self.threshold, row=row_num, tip="Higher values will increase the amount of white.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the whole thing one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        row_num += 1
+        create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
+        row_num += 1
+
+        self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
+        self.action_button.grid(row=row_num, column=1, pady=10)
+        #row_num += 1
+
+        self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
+        self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
+        self.loading_label.grid_remove()
+
+    def perform_action(self):
+        try:
+            self.loading_label.grid()
+            self.loading_label.config(fg="blue")
+            self.loading_label.config(text=f"Loading...")
+            self.master.update()
+
+            output_name = self.output_name.get()
+            input_audio = self.input_audio.get()
+            channel = self.channel.get()
+            fps = self.fps.get()
+            res_width = self.res_width.get()
+            res_height = self.res_height.get()
+            mode = self.mode.get()
+            zoom = self.zoom.get()
+            threshold = self.threshold.get()
+            thickness = self.thickness.get()
+            compression = self.compression.get()
+
+            error_flag = False
+            if fps <= 0:
+                self.loading_label.config(text=f"Error! Frame rate must be a positive number.")
+                error_flag = True
+            if res_width <= 0 or (res_width % 2) != 0 or res_height <= 0 or (res_height % 2) != 0:
+                self.loading_label.config(text=f"Error! Resolution values must be positive even numbers.")
+                error_flag = True
+
+            if zoom <= 0:
+                self.loading_label.config(text=f"Error! Zoom amount must be a positive number.")
+                error_flag = True
+
+            if thickness <= 0 or (thickness % 1) != 0:
+                self.loading_label.config(text=f"Error! Thickness must be a positive whole number.")
+                error_flag = True
+            if compression < 0:
+                self.loading_label.config(text=f"Error! Compression must be a non-negative number.")
+                error_flag = True
+
+            if error_flag == True:
+                self.loading_label.config(fg="Red")
+                self.master.update()
+            else:
+                generate_chladni(output_name,input_audio,channel,fps, res_width, res_height, mode, zoom, threshold, thickness,compression,self.update_loading_label)
+
+        except Exception:
+            #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
+            self.loading_label.config(fg="Red")
+            self.master.update()
+
+    def update_loading_label(self, progress, total, text_state, text_message):
         if text_state == True:
             self.loading_label.config(text=text_message)
         else:
@@ -3334,7 +3547,6 @@ class PoincareWindow:
         self.master = master
         self.master.title("Poincaré Plot Visualizer v0.01 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Merge to mono)")
@@ -3347,7 +3559,7 @@ class PoincareWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
+
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3367,25 +3579,21 @@ class PoincareWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
         
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
         
-        # Create a Label for the loading message (initially hidden)
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(fg="blue")
             self.loading_label.config(text=f"Loading...")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -3419,15 +3627,15 @@ class PoincareWindow:
                 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_poincare(output_name,input_audio,channel,fps, res_width, res_height,delay,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
             
     def update_loading_label(self, progress, total, text_state, text_message):       
         if text_state == True:
@@ -3449,7 +3657,6 @@ class DelayEmbedWindow:
         self.master = master
         self.master.title("Delay Embed Visualizer v0.05 by Aaron F. Bianchi")
 
-        # Variables to store user input with default values
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
         self.channel = tk.StringVar(value="Both (Stereo)")
@@ -3467,7 +3674,7 @@ class DelayEmbedWindow:
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        # Create labels and Entry/Checkbutton widgets for input
+
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3491,25 +3698,21 @@ class DelayEmbedWindow:
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
         
-        # Create a Button to perform the action
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
         
-        # Create a Label for the loading message (initially hidden)
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
-        self.loading_label.grid_remove()  # Initially hide the loading label
+        self.loading_label.grid_remove()
 
     def perform_action(self):
         try:
-            # Show loading label during action
             self.loading_label.grid()
             self.loading_label.config(fg="blue")
             self.loading_label.config(text=f"Loading...")
-            self.master.update()  # Force update to show the label
+            self.master.update()
 
-            # Get values from Entry widgets and perform the final action
             output_name = self.output_name.get()
             input_audio = self.input_audio.get()
             channel = self.channel.get()
@@ -3548,15 +3751,15 @@ class DelayEmbedWindow:
                 
             if error_flag == True:
                 self.loading_label.config(fg="Red")
-                self.master.update()  # Force update to show the label
+                self.master.update()
             else:
                 generate_delay_embed(output_name,input_audio,channel,fps, res_width, res_height,delay1,delay2, beta_p, beta_s, alfa_p, alfa_s,interpolation,thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
-            self.loading_label.config(text=f"Error! I could check all the fields except for \"Input Audio\" and\nthey seem good. Maybe check that field again :/")
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
             self.loading_label.config(fg="Red")
-            self.master.update()  # Force update to show the label
+            self.master.update()
             
     def update_loading_label(self, progress, total, text_state, text_message):       
         if text_state == True:
@@ -3640,6 +3843,10 @@ def option12():
     histogram_window = tk.Toplevel(root)
     HistogramWindow(histogram_window)
 
+def option13():
+    chladni_window = tk.Toplevel(root)
+    ChladniWindow(chladni_window)
+
 #def optionhelp():
 #    help_window = tk.Toplevel(root)
 #    HelpWindow(help_window)
@@ -3668,7 +3875,7 @@ def stop_gif(event, button):
 
 #MAIN WINDOW
 root = tk.Tk()
-root.title("LSaO Visualizer v0.84")
+root.title("LSaO Visualizer v0.87")
 #root.geometry("700x600")
 
 def load_gif(path):
@@ -3695,6 +3902,7 @@ gif9 = load_gif("resources/resized_img_recurrence.gif")
 gif10 = load_gif("resources/resized_img_poincare.gif")
 gif11 = load_gif("resources/resized_img_embed2.gif")
 gif12 = load_gif("resources/resized_img_histogram.gif")
+gif13 = load_gif("resources/resized_img_chladni.gif")
 logo = tk.PhotoImage(file="resources/lsao logotype.png")
 
 # INITIAL TEXT
@@ -3711,11 +3919,11 @@ elif os.name == 'posix':
     print("Running on Linux or Unix-like system")
     initial_text = initial_text + "\n- FFmpeg is required."
 initial_label = tk.Label(root, text=initial_text, font=("Helvetica", 10), anchor='w', justify='left')
-initial_label.grid(row=row_num, column=2, columnspan=2, padx=10, pady=10, sticky="w")
+initial_label.grid(row=row_num, column=0, columnspan=2, padx=10, pady=10, sticky="w")
 
 # LOGO
 button_logo = tk.Label(root, image=logo, text="", justify='center')
-button_logo.grid(row=row_num, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+button_logo.grid(row=4, column=2, columnspan=2, padx=5, pady=5, sticky="w")
 button_logo.bind("<Button-1>", lambda e: webbrowser.open("https://aaron-f-bianchi.itch.io/lsao"))
 
 row_num += 1
@@ -3831,6 +4039,16 @@ button_option11.current_frame = 97
 button_option11.bind("<Enter>", lambda e: start_gif(e, button_option11, gif11))
 button_option11.bind("<Leave>", lambda e: stop_gif(e, button_option11))
 
+row_num += 1
+col_num = 0
+
+# OPTION 13
+button_option13 = tk.Button(root, image=gif13[11], text="Chladni", compound=tk.BOTTOM, command=option13, width=button_width, height=button_height)
+button_option13.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
+button_option13.gif_playing = False
+button_option13.current_frame = 11
+button_option13.bind("<Enter>", lambda e: start_gif(e, button_option13, gif13))
+button_option13.bind("<Leave>", lambda e: stop_gif(e, button_option13))
 
 # col_num += 1
 # # Button for option 12
