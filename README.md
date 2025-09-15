@@ -109,15 +109,15 @@ Installation
 ---------------------
 You don't need to install it. Just double click the executable.
 
-Usage
+Things to know
 ---------------------
-* FFmpeg is required.
-* The Stereo Oscilloscope generator only works with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
+* The Windows and MacOS releases of this software bundle FFmpeg (https://ffmpeg.org/), it defaults to the FFmpeg in PATH if already installed though. FFmpeg is licensed under the GNU General Public License version 3 (GPL v3). Prebuilt binaries used in this project are from Gyan.dev (https://www.gyan.dev/ffmpeg/builds/). The FFmpeg source code is available at https://ffmpeg.org/download.html#source
+
+* The Stereo X/Y and Polar Visualizers only work with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
 
 Tips if using on Windows
 -------------------------
-* You need to install FFmpeg manually and add it to PATH. This is NOT just downloading a random and of dubious origin "ffmpeg.exe" file and pasting it into the root folder of this program. You can follow [this tutorial](https://phoenixnap.com/kb/ffmpeg-windows) on how to properly do it.
-* The default Windows video player is not gonna play the exported videos correctly. Try VLC instead. (You'll be able to use the exported videos in any video editing software just fine, though)
+* The default Windows video player is not gonna play the exported videos correctly. Try another video player instead (Like VLC, for example). You'll be able to use the exported videos in any video editing software just fine, though.
 
 
 Running from source
