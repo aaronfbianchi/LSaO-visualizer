@@ -1,6 +1,6 @@
-#python -m venv myenv
+#python3 -m venv myenv
 #source myenv/bin/activate
-#myenv\Scripts\activate
+#venv\Scripts\activate
 #pip install scipy
 #pip install pyinstaller
 #pyinstaller --onefile --console main.py
@@ -95,40 +95,62 @@ def ffmpeg_ubicacion():
     if ffmpeg_PATH:
         return ffmpeg_PATH
 
-    if getattr(sys, "frozen", False): 
+    if getattr(sys, "frozen", False):
         base_path = sys._MEIPASS
-    else: 
+        exe_dir = os.path.dirname(sys.executable)
+    else: # Running from source
         base_path = os.path.dirname(os.path.abspath(__file__))
+        exe_dir = base_path
+
+    search_paths = []
 
     if sys.platform == "win32":
-        ffmpeg_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffmpeg.exe")
+        search_paths += [
+            os.path.join(base_path, "ffmpeg", "bin", "ffmpeg.exe"),
+            os.path.join(exe_dir, "ffmpeg", "bin", "ffmpeg.exe"),
+        ]
     else:
-        ffmpeg_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffmpeg")
+        search_paths += [
+            os.path.join(base_path, "ffmpeg", "bin", "ffmpeg"),
+            os.path.join(exe_dir, "ffmpeg", "bin", "ffmpeg"),
+        ]
 
-    if os.path.exists(ffmpeg_bundled):
-        return ffmpeg_bundled
+    for candidate in search_paths:
+        if os.path.exists(candidate):
+            return candidate
 
-    raise FileNotFoundError("FFmpeg not found in PATH or bundled with the app.")
+    raise FileNotFoundError("FFmpeg not found in PATH or alongside the app.")
 
 def ffprobe_ubicacion():
     ffprobe_PATH = shutil.which("ffprobe")
     if ffprobe_PATH:
         return ffprobe_PATH
 
-    if getattr(sys, "frozen", False): 
+    if getattr(sys, "frozen", False):
         base_path = sys._MEIPASS
-    else: 
+        exe_dir = os.path.dirname(sys.executable)
+    else: # Running from source
         base_path = os.path.dirname(os.path.abspath(__file__))
+        exe_dir = base_path
+
+    search_paths = []
 
     if sys.platform == "win32":
-        ffprobe_bundled = os.path.join(base_path, "ffprobe", "bin", "ffprobe.exe")
+        search_paths += [
+            os.path.join(base_path, "ffmpeg", "bin", "ffprobe.exe"),
+            os.path.join(exe_dir, "ffmpeg", "bin", "ffprobe.exe"),
+        ]
     else:
-        ffprobe_bundled = os.path.join(base_path, "ffprobe", "bin", "ffprobe")
+        search_paths += [
+            os.path.join(base_path, "ffmpeg", "bin", "ffprobe"),
+            os.path.join(exe_dir, "ffmpeg", "bin", "ffprobe"),
+        ]
 
-    if os.path.exists(ffprobe_bundled):
-        return ffprobe_bundled
+    for candidate in search_paths:
+        if os.path.exists(candidate):
+            return candidate
 
-    raise FileNotFoundError("FFprobe not found in PATH or bundled with the app.")
+    raise FileNotFoundError("FFprobe not found in PATH or alongside the app.")
 
 def generate_spectrum(output_name,input_audio, channel,fps, res_width, res_height, t_smoothing, xlow, xhigh, limt_junk, attenuation_steep, junk_threshold, threshold_steep, style, thickness, compression, callback_function):
     root, vidfor = os.path.splitext(output_name)
@@ -3498,7 +3520,7 @@ class ChladniWindow:
         self.res_height = tk.IntVar(value=720)
         self.mode = tk.StringVar(value="Cosine")
         self.zoom = tk.DoubleVar(value=1000)
-        self.smoothing = tk.DoubleVar(value=0.2)
+        self.smoothing = tk.DoubleVar(value=0.05)
         self.threshold = tk.DoubleVar(value=0.5)
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
