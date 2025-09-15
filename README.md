@@ -111,7 +111,7 @@ You don't need to install it. Just double click the executable.
 
 Things to know
 ---------------------
-* The Windows and MacOS releases of this software bundle FFmpeg (https://ffmpeg.org/), it defaults to the FFmpeg in PATH if already installed though. FFmpeg is licensed under the GNU General Public License version 3 (GPL v3). Prebuilt binaries used in this project are from Gyan.dev (https://www.gyan.dev/ffmpeg/builds/). The FFmpeg source code is available at https://ffmpeg.org/download.html#source
+* The Windows releases of this software bundle FFmpeg (https://ffmpeg.org/), it defaults to the FFmpeg in PATH if already installed though. FFmpeg is licensed under the GNU General Public License version 3 (GPL v3). Prebuilt binaries used in this project are from Gyan.dev (https://www.gyan.dev/ffmpeg/builds/). The FFmpeg source code is available at https://ffmpeg.org/download.html#source
 
 * The Stereo X/Y and Polar Visualizers only work with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
 
