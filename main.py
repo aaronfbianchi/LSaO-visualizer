@@ -1,7 +1,9 @@
-#python3 -m venv myenv
+#python -m venv myenv
 #source myenv/bin/activate
+#myenv\Scripts\activate
 #pip install scipy
 #pip install pyinstaller
+#pyinstaller --onefile --console main.py
 
 import tkinter as tk
 from tkinter import ttk
@@ -15,16 +17,18 @@ import os
 #from scipy.signal import butter, filtfilt#, sosfreqz, sosfreqresp, sos2tf, sosfilter
 import webbrowser
 from PIL import Image, ImageTk
+import shutil
+import sys
 
 ######################################################################
 ## LINEAR SPRECTRUM AND OSCILLOSCOPE VISUALIZER by Aarón F. Bianchi ##
 ######################################################################
 
 def read_audio_samples(input_file):
-    cmd = ['ffmpeg', '-i', input_file, '-f', 's16le', '-']
+    cmd = [FFMPEG, '-i', input_file, '-f', 's16le', '-']
     output = subprocess.check_output(cmd, stderr=subprocess.PIPE)
 
-    cmd_probe = ['ffprobe', '-show_streams', '-select_streams', 'a:0', input_file]
+    cmd_probe = [FFPROBE, '-show_streams', '-select_streams', 'a:0', input_file]
     probe_output = subprocess.check_output(cmd_probe, stderr=subprocess.PIPE)
     probe_output = probe_output.decode('utf-8').split('\n')
 
@@ -49,21 +53,21 @@ def read_audio_samples(input_file):
 def convert_vid(input_audio, output_name, vidfor):
     if vidfor == ".gif":
         ffmpeg_command = [
-            'ffmpeg', 
+            FFMPEG,
             '-i', "resources/temporary_file.mp4", 
             output_name, 
             '-y'
         ]
     elif vidfor == ".webp":
         ffmpeg_command = [
-            'ffmpeg', 
+            FFMPEG,
             '-i', "resources/temporary_file.mp4",
             '-loop','0',
             output_name,
             '-y']
     elif vidfor == ".webm":
         ffmpeg_command = [
-            'ffmpeg', 
+            FFMPEG,
             '-i', input_audio,
             '-i', "resources/temporary_file.mp4",
             '-c:v', 'libvpx-vp9',
@@ -73,7 +77,7 @@ def convert_vid(input_audio, output_name, vidfor):
         ]
     else:
         ffmpeg_command = [
-            'ffmpeg',
+            FFMPEG,
             '-i', input_audio,
             '-i', "resources/temporary_file.mp4",
             '-c:v', 'copy', '-strict', 'experimental', '-b:a', '320k',
@@ -85,6 +89,46 @@ def convert_vid(input_audio, output_name, vidfor):
         subprocess.run(ffmpeg_command, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
+
+def ffmpeg_ubicacion():
+    ffmpeg_PATH = shutil.which("ffmpeg")
+    if ffmpeg_PATH:
+        return ffmpeg_PATH
+
+    if getattr(sys, "frozen", False): 
+        base_path = sys._MEIPASS
+    else: 
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    if sys.platform == "win32":
+        ffmpeg_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffmpeg.exe")
+    else:
+        ffmpeg_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffmpeg")
+
+    if os.path.exists(ffmpeg_bundled):
+        return ffmpeg_bundled
+
+    raise FileNotFoundError("FFmpeg not found in PATH or bundled with the app.")
+
+def ffprobe_ubicacion():
+    ffprobe_PATH = shutil.which("ffprobe")
+    if ffprobe_PATH:
+        return ffprobe_PATH
+
+    if getattr(sys, "frozen", False): 
+        base_path = sys._MEIPASS
+    else: 
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    if sys.platform == "win32":
+        ffprobe_bundled = os.path.join(base_path, "ffprobe", "bin", "ffprobe.exe")
+    else:
+        ffprobe_bundled = os.path.join(base_path, "ffprobe", "bin", "ffprobe")
+
+    if os.path.exists(ffprobe_bundled):
+        return ffprobe_bundled
+
+    raise FileNotFoundError("FFprobe not found in PATH or bundled with the app.")
 
 def generate_spectrum(output_name,input_audio, channel,fps, res_width, res_height, t_smoothing, xlow, xhigh, limt_junk, attenuation_steep, junk_threshold, threshold_steep, style, thickness, compression, callback_function):
     root, vidfor = os.path.splitext(output_name)
@@ -193,7 +237,7 @@ def generate_spectrum(output_name,input_audio, channel,fps, res_width, res_heigh
     num_frames = fsong_comp.shape[0]
     
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -354,7 +398,7 @@ def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_he
     num_frames = fsong_comp.shape[0]
     
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -526,7 +570,7 @@ def generate_spec_balance(output_name,input_audio,fps, res_width, res_height, t_
     num_frames = fsong_vert.shape[0]
     
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -676,7 +720,7 @@ def generate_histogram(output_name,input_audio, channel,fps, res_width, res_heig
         filled = True
     
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -791,7 +835,7 @@ def generate_waveform(output_name,input_audio,channel,fps_2, res_width, res_heig
         filled = True
 
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -922,7 +966,7 @@ def generate_waveform_long(output_name,input_audio,channel,fps, res_width, res_h
         filled = True
 
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -1078,7 +1122,7 @@ def generate_oscilloscope(output_name,input_audio,fps, res_width, res_height,int
     print(f"audioRInterp {audioRInterp.shape}")
       
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -1228,7 +1272,7 @@ def generate_polar(output_name,input_audio,channel,fps, res_width, res_height,of
     audioRInterp = np.clip(audioRInterp,0,res_width-1).astype(np.int16)
         
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -1372,7 +1416,7 @@ def generate_polar_stereo(output_name,input_audio,fps, res_width, res_height,off
     audioRInterp = np.clip(audioRInterp,0,res_width-1).astype(np.int16)
         
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -1515,7 +1559,7 @@ def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_heig
     #print(xaxis)
     #print(yaxis)
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -1583,7 +1627,7 @@ def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_heig
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
 
-def generate_chladni(output_name,input_audio,channel,fps, res_width, res_height, mode, zoom, threshold, thickness,compression, callback_function):
+def generate_chladni(output_name,input_audio,channel,fps, res_width, res_height, mode, zoom, exp_filter, threshold, thickness,compression, callback_function):
 
     root, vidfor = os.path.splitext(output_name)
 
@@ -1643,7 +1687,7 @@ def generate_chladni(output_name,input_audio,channel,fps, res_width, res_height,
     #print(xaxis)
 
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -1665,9 +1709,20 @@ def generate_chladni(output_name,input_audio,channel,fps, res_width, res_height,
     ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     frameData = np.zeros((res_width, res_height), dtype=bool)
     j = 0
+
+    exp_filter = np.sqrt(exp_filter)
+
+    envL_past = 0
+    envR_past = 0
     for i in range(n_frames):
-        envL = 10*np.max(audioL[round(i*size_frame) : round(i*size_frame)+int(size_frame)]) #DETERMINAR LA ENVOLVENTE
-        envR = 10*np.max(audioR[round(i*size_frame) : round(i*size_frame)+int(size_frame)]) #DETERMINAR LA ENVOLVENTE
+        envL_now = 10*np.max(audioL[round(i*size_frame) : round(i*size_frame)+int(size_frame)]) #DETERMINAR LA ENVOLVENTE
+        envR_now = 10*np.max(audioR[round(i*size_frame) : round(i*size_frame)+int(size_frame)]) #DETERMINAR LA ENVOLVENTE
+
+        envL = envL_now*(1-exp_filter) + envL_past*exp_filter
+        envR = envR_now*(1-exp_filter) + envR_past*exp_filter
+
+        envL_past = envL
+        envR_past = envR
 
         a = 5*(2+np.sin(1+i/n_frames*duration))
         b = 5*(2-np.cos(1+i/n_frames*duration))
@@ -1828,7 +1883,7 @@ def generate_poincare(output_name,input_audio,channel ,fps, res_width, res_heigh
     print(f"audioRInterp {audioRInterp.shape}")
       
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -1974,7 +2029,7 @@ def generate_delay_embed(output_name,input_audio,channel ,fps, res_width, res_he
     #print(f"audio0Interp {audio0Interp.shape}")
       
     cmd = [
-        'ffmpeg',
+        FFMPEG,
         '-y',  # Overwrite output file if it exists
         '-f', 'rawvideo',
         '-s', '{}x{}'.format(res_width, res_height),
@@ -3433,7 +3488,7 @@ class ChladniWindow:
     mode_values = ["Sine", "Cosine", "Tangent", "Cotangent", "Secant", "Cosecant"]
     def __init__(self, master):
         self.master = master
-        self.master.title("False Chladni Plate Visualizer v0.06 by Aaron F. Bianchi")
+        self.master.title("False Chladni Plate Visualizer v0.08 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3443,14 +3498,12 @@ class ChladniWindow:
         self.res_height = tk.IntVar(value=720)
         self.mode = tk.StringVar(value="Cosine")
         self.zoom = tk.DoubleVar(value=1000)
+        self.smoothing = tk.DoubleVar(value=0.2)
         self.threshold = tk.DoubleVar(value=0.5)
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
         row_num = 0
-        #warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
-        #warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
-        #row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3464,6 +3517,8 @@ class ChladniWindow:
         create_combobox(self.master, "Mode:", self.mode, row=row_num, values=self.mode_values, tip="Try these for different shapes in your video", readonly=True)
         row_num += 1
         create_input_widgets(self.master, "Zoom:", self.zoom, row=row_num, tip="Zoom in the Chladni plate.")
+        row_num += 1
+        create_input_widgets(self.master, "Smoothing:", self.smoothing, row=row_num, tip="The higher this value, the smoother the visualization. From 0 to 1.")
         row_num += 1
         create_input_widgets(self.master, "Threshold:", self.threshold, row=row_num, tip="Higher values will increase the amount of white.")
         row_num += 1
@@ -3495,6 +3550,7 @@ class ChladniWindow:
             res_height = self.res_height.get()
             mode = self.mode.get()
             zoom = self.zoom.get()
+            smoothing = self.smoothing.get()
             threshold = self.threshold.get()
             thickness = self.thickness.get()
             compression = self.compression.get()
@@ -3511,6 +3567,10 @@ class ChladniWindow:
                 self.loading_label.config(text=f"Error! Zoom amount must be a positive number.")
                 error_flag = True
 
+            if smoothing < 0 or smoothing > 1:
+                self.loading_label.config(text=f"Error! Smoothing value must be from 0 to 1.")
+                error_flag = True
+
             if thickness <= 0 or (thickness % 1) != 0:
                 self.loading_label.config(text=f"Error! Thickness must be a positive whole number.")
                 error_flag = True
@@ -3522,7 +3582,7 @@ class ChladniWindow:
                 self.loading_label.config(fg="Red")
                 self.master.update()
             else:
-                generate_chladni(output_name,input_audio,channel,fps, res_width, res_height, mode, zoom, threshold, thickness,compression,self.update_loading_label)
+                generate_chladni(output_name,input_audio,channel,fps, res_width, res_height, mode, zoom, smoothing, threshold, thickness,compression,self.update_loading_label)
 
         except Exception:
             #messagebox.showerror("Error", "Invalid input. Please enter valid values.")
@@ -3874,8 +3934,11 @@ def stop_gif(event, button):
     button.gif_playing = False 
 
 #MAIN WINDOW
+FFMPEG = ffmpeg_ubicacion()
+FFPROBE = ffprobe_ubicacion()
+
 root = tk.Tk()
-root.title("LSaO Visualizer v0.87")
+root.title("LSaO Visualizer v1.02")
 #root.geometry("700x600")
 
 def load_gif(path):
@@ -3907,19 +3970,19 @@ logo = tk.PhotoImage(file="resources/lsao logotype.png")
 
 # INITIAL TEXT
 row_num = 0
-initial_text = "USAGE:\n"
+initial_text = "Things to know:\n"
 if os.name == 'nt':
     button_width = 110
     button_height = 104
     print("Running on Windows")
-    initial_text = initial_text + "\n- FFmpeg has to be manually installed\n  and added to PATH.\n- The default Windows video player\n  isn't going to play the generated videos\n  correctly. Try a better video player."
+    initial_text = initial_text + "\n- The default Windows video player isn't going to play the generated videos\n  correctly. Try a better video player (VLC, for example).\n- This program uses FFmpeg."
 elif os.name == 'posix':
     button_width = 90
     button_height = 104
-    print("Running on Linux or Unix-like system")
-    initial_text = initial_text + "\n- FFmpeg is required."
+    print("Running on Linux")
+    initial_text = initial_text + "\n- You have to install FFmpeg if you haven't already."
 initial_label = tk.Label(root, text=initial_text, font=("Helvetica", 10), anchor='w', justify='left')
-initial_label.grid(row=row_num, column=0, columnspan=2, padx=10, pady=10, sticky="w")
+initial_label.grid(row=row_num, column=0, columnspan=4, padx=10, pady=10, sticky="w")
 
 # LOGO
 button_logo = tk.Label(root, image=logo, text="", justify='center')
