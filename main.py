@@ -1,6 +1,6 @@
-#python3 -m venv myenv
+#python -m venv myenv
 #source myenv/bin/activate
-#venv\Scripts\activate
+#myenv\Scripts\activate
 #pip install scipy
 #pip install pyinstaller
 #pyinstaller --onefile --console main.py
@@ -95,62 +95,40 @@ def ffmpeg_ubicacion():
     if ffmpeg_PATH:
         return ffmpeg_PATH
 
-    if getattr(sys, "frozen", False):
+    if getattr(sys, "frozen", False): 
         base_path = sys._MEIPASS
-        exe_dir = os.path.dirname(sys.executable)
-    else: # Running from source
+    else: 
         base_path = os.path.dirname(os.path.abspath(__file__))
-        exe_dir = base_path
-
-    search_paths = []
 
     if sys.platform == "win32":
-        search_paths += [
-            os.path.join(base_path, "ffmpeg", "bin", "ffmpeg.exe"),
-            os.path.join(exe_dir, "ffmpeg", "bin", "ffmpeg.exe"),
-        ]
+        ffmpeg_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffmpeg.exe")
     else:
-        search_paths += [
-            os.path.join(base_path, "ffmpeg", "bin", "ffmpeg"),
-            os.path.join(exe_dir, "ffmpeg", "bin", "ffmpeg"),
-        ]
+        ffmpeg_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffmpeg")
 
-    for candidate in search_paths:
-        if os.path.exists(candidate):
-            return candidate
+    if os.path.exists(ffmpeg_bundled):
+        return ffmpeg_bundled
 
-    raise FileNotFoundError("FFmpeg not found in PATH or alongside the app.")
+    raise FileNotFoundError("FFmpeg not found in PATH or bundled with the app.")
 
 def ffprobe_ubicacion():
     ffprobe_PATH = shutil.which("ffprobe")
     if ffprobe_PATH:
         return ffprobe_PATH
 
-    if getattr(sys, "frozen", False):
+    if getattr(sys, "frozen", False): 
         base_path = sys._MEIPASS
-        exe_dir = os.path.dirname(sys.executable)
-    else: # Running from source
+    else: 
         base_path = os.path.dirname(os.path.abspath(__file__))
-        exe_dir = base_path
-
-    search_paths = []
 
     if sys.platform == "win32":
-        search_paths += [
-            os.path.join(base_path, "ffmpeg", "bin", "ffprobe.exe"),
-            os.path.join(exe_dir, "ffmpeg", "bin", "ffprobe.exe"),
-        ]
+        ffprobe_bundled = os.path.join(base_path, "ffprobe", "bin", "ffprobe.exe")
     else:
-        search_paths += [
-            os.path.join(base_path, "ffmpeg", "bin", "ffprobe"),
-            os.path.join(exe_dir, "ffmpeg", "bin", "ffprobe"),
-        ]
+        ffprobe_bundled = os.path.join(base_path, "ffprobe", "bin", "ffprobe")
 
-    for candidate in search_paths:
-        if os.path.exists(candidate):
-            return candidate
+    if os.path.exists(ffprobe_bundled):
+        return ffprobe_bundled
 
-    raise FileNotFoundError("FFprobe not found in PATH or alongside the app.")
+    raise FileNotFoundError("FFprobe not found in PATH or bundled with the app.")
 
 def generate_spectrum(output_name,input_audio, channel,fps, res_width, res_height, t_smoothing, xlow, xhigh, limt_junk, attenuation_steep, junk_threshold, threshold_steep, style, thickness, compression, callback_function):
     root, vidfor = os.path.splitext(output_name)
@@ -946,6 +924,7 @@ def generate_waveform(output_name,input_audio,channel,fps_2, res_width, res_heig
     callback_function(i,n_frames_2, text_state = True, text_message = "Done, my dood!")
     return 0
 
+
 def generate_waveform_long(output_name,input_audio,channel,fps, res_width, res_height,window_size, style,thickness,compression, callback_function):
     
     root, vidfor = os.path.splitext(output_name)
@@ -1067,6 +1046,132 @@ def generate_waveform_long(output_name,input_audio,channel,fps, res_width, res_h
     callback_function(i,n_frames, text_state = True, text_message = "Joining frames...")
     convert_vid(input_audio, output_name, vidfor)
         
+    print(f"Video saved to {output_name}")
+    os.remove("resources/temporary_file.mp4")
+    callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
+    return 0
+
+def generate_envelope(output_name,input_audio,channel,fps, res_width, res_height,window_size, smoothing, style,thickness,compression, callback_function):
+
+    root, vidfor = os.path.splitext(output_name)
+
+    song, fs = read_audio_samples(input_audio)
+    song = song.T.astype(np.float16)
+
+    print(f"song {song.shape}")
+    if song.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.transpose(np.mean(song, axis = 0))
+            print(f"audio {audio.shape}")
+        elif channel == "Left":
+            audio = np.transpose(song[0,:])
+        elif channel == "Right":
+            audio = np.transpose(song[1,:])
+    else:
+        audio = np.transpose(song)
+        print(f"audio {audio.shape}")
+
+    audio = audio/abs(np.max(audio)) #NORMALIZATION
+
+    audio = np.concatenate((np.zeros((round(window_size))), audio)) ## TO ENSURE YOU HAVE A FIRST FRAME FULL OF 0's
+
+    duration = len(audio)/fs #IN SECONDS
+    speed = fs/fps #IN SAMPLES
+
+    n_frames = int(np.ceil(duration*fps))
+    audio = np.pad(audio, (0, int(n_frames*speed + window_size) - len(audio)))
+    audio = np.convolve(np.abs(audio), np.ones(smoothing)/smoothing, mode='same') #ENVELOPE
+    audio = audio/abs(np.max(audio)) #NORMALIZATION
+    #segments = np.zeros((n_frames + 1,window_size))
+
+    if style == "Just Points": ## DRAWS DOTS IN SCREEN
+        points = True
+        filled = False
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
+        points = False
+        filled = False
+    elif style == "Filled Envelope": ## DRAWS FILLED SPECTRUM
+        points = False
+        filled = True
+
+    cmd = [
+        FFMPEG,
+        '-y',  # Overwrite output file if it exists
+        '-f', 'rawvideo',
+        '-s', '{}x{}'.format(res_width, res_height),
+        '-pix_fmt', 'gray',  # Use grayscale pixel format
+        '-r', str(fps),  # Frames per second
+        '-i', '-',  # Read input from stdin
+        '-c:v', 'libx264',  # Video codec
+        '-preset', 'medium',  # Encoding speed vs compression ratio
+        '-crf', str(compression),  # Constant Rate Factor (0-51): Lower values mean better quality
+        '-pix_fmt', 'yuv420p',  # Pixel format for compatibility
+        'resources/temporary_file.mp4'
+    ]
+
+    ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+
+    xaxis = np.linspace(0,res_width - 1,window_size)
+
+    speed_px = int(speed*res_width/window_size)
+    oldFrame = np.zeros((res_height, res_width), dtype=bool)
+
+    print(f"speed{speed}")
+    print(f"speed_px{speed_px}")
+
+    # Generate and save each frame as an image
+    for i in range(n_frames):
+        segments = audio[round(i*speed) : round(i*speed) + window_size]
+        #seg_resa = np.clip(segments, -1, 1)
+        fsong_comp = segments*0.95*res_height
+
+        frameData = np.roll(oldFrame, -speed_px ,axis = 1) #RECICLE THE LAST GENERATED FRAME
+        frameData[:, res_width-speed_px:res_width] = False
+
+        if filled == False:
+            if points:## DRAWS JUST POINTS
+                for m in range(int(np.max((0,(window_size - speed)))),window_size):
+                    frameData[res_height - int(fsong_comp[m]) -1, int(xaxis[m])] = True
+            else: ## DRAWS A LINE (1.5x SLOW)
+                for m in range(int(np.max((0,(window_size - speed)))),window_size - 1):
+                    point1 = int(fsong_comp[m])
+                    point2 = int(fsong_comp[m+1])
+                    if  point1 == point2:
+                        frameData[res_height - point1 -1, int(xaxis[m])] = True
+                    if  point1 > point2:
+                        frameData[res_height - point1 -1: res_height - point2 -1, int(xaxis[m])] = True
+                    else:
+                        frameData[res_height - point2 -1: res_height - point1 -1, int(xaxis[m])] = True
+        else: ## FILLED SPECTRUM
+            for m in range(int(np.max((0,(window_size - speed)))),window_size):
+                    frameData[res_height - int(fsong_comp[m]):res_height, int(xaxis[m])] = True
+
+
+
+        oldFrame = frameData
+
+        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
+        if thickness > 1:
+            for th in range(thickness - 1):
+                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
+                shifted[-1, :] = False ## CLEARS BOTTOM ROW
+                #frameData = (frameData + shifted)
+                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
+                shifted2[:, -1] = False ## CLEARS LAST COLUMN
+                frameData = frameData | shifted | shifted2
+
+        frameData = frameData.astype(np.uint8) * 255
+
+        ffmpeg_process.stdin.write(frameData)
+        #print(f"{i+1}/{n_frames}")
+        callback_function(i,n_frames, text_state = False, text_message = " ")
+
+    ffmpeg_process.stdin.close()
+    ffmpeg_process.wait()
+
+    callback_function(i,n_frames, text_state = True, text_message = "Joining frames...")
+    convert_vid(input_audio, output_name, vidfor)
+
     print(f"Video saved to {output_name}")
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
@@ -3035,6 +3140,127 @@ class LongWaveformWindow:
             self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
         self.master.update()  # Update the GUI
 
+class EnvelopeWindow:
+    channel_values = ["Both (Merge to mono)", "Left", "Right"]
+    fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
+    width_values = [480,720,960,1024,1280,1366,1440,1080,1920,2560,3840]
+    height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+    style_values = ["Just Points", "Curve", "Filled Envelope"]
+
+    def __init__(self, master):
+        self.master = master
+        self.master.title("Envelope Visualizer v0.08 by Aaron F. Bianchi")
+
+        self.output_name = tk.StringVar(value="output.mp4")
+        self.input_audio = tk.StringVar(value="")
+        self.channel = tk.StringVar(value="Both (Merge to mono)")
+        self.fps_2 = tk.DoubleVar(value=60)
+        self.res_width = tk.IntVar(value=1920)
+        self.res_height = tk.IntVar(value=540)
+        self.window_size = tk.IntVar(value=50000)
+        self.smoothing = tk.IntVar(value=1000)
+        self.style = tk.StringVar(value="Just Points")
+        self.thickness = tk.IntVar(value="1")
+        self.compression = tk.DoubleVar(value=0)
+
+        row_num = 0
+        create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
+        row_num += 1
+        create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
+        row_num += 1
+        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        row_num += 1
+        create_combobox(self.master, "Frame Rate:", self.fps_2, row=row_num, values=self.fps_values, tip="Frames per second")
+        row_num += 1
+        create_combobox_dual(self.master, "Resolution:", self.res_width, "x", self.res_height, row=row_num, values=self.width_values, values2=self.height_values, tip="Width x Height. Even numbers.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="The smaller this is, the faster the envelope will move. Whole number.\nRecommended minimum is the width of the video.")
+        row_num += 1
+        create_input_widgets_num(self.master, "Smoothing:", self.smoothing, row=row_num, tip="This makes the envelope smoother.")
+        row_num += 1
+        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        row_num += 1
+        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        row_num += 1
+        create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
+        row_num += 1
+
+        self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
+        self.action_button.grid(row=row_num, column=1, pady=10)
+
+        self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
+        self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
+        self.loading_label.grid_remove()
+
+    def validate_numeric(self, value):
+        try:
+            if not value:
+                return True
+            float(value)
+            return True
+        except ValueError:
+            return False
+
+    def perform_action(self):
+        try:
+            self.loading_label.grid()
+            self.loading_label.config(fg="blue")
+            self.loading_label.config(text=f"Loading...")
+            self.master.update()
+
+            output_name = self.output_name.get()
+            input_audio = self.input_audio.get()
+            channel = self.channel.get()
+            fps_2 = self.fps_2.get()
+            res_width = self.res_width.get()
+            res_height = self.res_height.get()
+            window_size = self.window_size.get()
+            smoothing = self.smoothing.get()
+            style = self.style.get()
+            thickness = self.thickness.get()
+            compression = self.compression.get()
+
+            error_flag = False
+            if fps_2 <= 0:
+                self.loading_label.config(text=f"Error! Frame rate must be a positive number.")
+                error_flag = True
+            if res_width <= 0 or (res_width % 2) != 0 or res_height <= 0 or (res_height % 2) != 0:
+                self.loading_label.config(text=f"Error! Resolution values must be positive even numbers.")
+                error_flag = True
+
+            if window_size <= 0 or (window_size % 1) != 0:
+                self.loading_label.config(text=f"Error! Window size must be a positive whole number.")
+                error_flag = True
+
+            if smoothing <= 0 or (smoothing % 1) != 0:
+                self.loading_label.config(text=f"Error! Smoothing must be a positive whole number.")
+                error_flag = True
+
+            if thickness <= 0 or (thickness % 1) != 0:
+                self.loading_label.config(text=f"Error! Thickness must be a positive whole number.")
+                error_flag = True
+            if compression < 0:
+                self.loading_label.config(text=f"Error! Compression must be a non-negative number.")
+                error_flag = True
+
+            if error_flag == True:
+                self.loading_label.config(fg="Red")
+                self.master.update()
+            else:
+                generate_envelope(output_name,input_audio, channel, fps_2, res_width, res_height, window_size, smoothing, style, thickness, compression, self.update_loading_label)
+
+        except Exception:
+            self.loading_label.config(text=f"Unknown error! I checked all the fields and they seem good.\nMaybe the file doesn't exist or the sample rate is weird or smth idk.")
+            self.loading_label.config(fg="Red")
+            self.master.update()
+
+    def update_loading_label(self, progress, total, text_state, text_message):
+        if text_state == True:
+            self.loading_label.config(text=text_message)
+        else:
+            self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
+        self.master.update()  # Update the GUI
+
 class OscilloscopeWindow:
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
@@ -3520,7 +3746,7 @@ class ChladniWindow:
         self.res_height = tk.IntVar(value=720)
         self.mode = tk.StringVar(value="Cosine")
         self.zoom = tk.DoubleVar(value=1000)
-        self.smoothing = tk.DoubleVar(value=0.05)
+        self.smoothing = tk.DoubleVar(value=0.2)
         self.threshold = tk.DoubleVar(value=0.5)
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
@@ -3929,6 +4155,10 @@ def option13():
     chladni_window = tk.Toplevel(root)
     ChladniWindow(chladni_window)
 
+def option14():
+    envelope_window = tk.Toplevel(root)
+    EnvelopeWindow(envelope_window)
+
 #def optionhelp():
 #    help_window = tk.Toplevel(root)
 #    HelpWindow(help_window)
@@ -3960,7 +4190,7 @@ FFMPEG = ffmpeg_ubicacion()
 FFPROBE = ffprobe_ubicacion()
 
 root = tk.Tk()
-root.title("LSaO Visualizer v1.02")
+root.title("LSaO Visualizer v1.06")
 #root.geometry("700x600")
 
 def load_gif(path):
@@ -3988,6 +4218,7 @@ gif10 = load_gif("resources/resized_img_poincare.gif")
 gif11 = load_gif("resources/resized_img_embed2.gif")
 gif12 = load_gif("resources/resized_img_histogram.gif")
 gif13 = load_gif("resources/resized_img_chladni.gif")
+gif14 = load_gif("resources/resized_img_envelope.gif")
 logo = tk.PhotoImage(file="resources/lsao logotype.png")
 
 # INITIAL TEXT
@@ -4134,6 +4365,15 @@ button_option13.gif_playing = False
 button_option13.current_frame = 11
 button_option13.bind("<Enter>", lambda e: start_gif(e, button_option13, gif13))
 button_option13.bind("<Leave>", lambda e: stop_gif(e, button_option13))
+
+col_num += 1
+# OPTION 14
+button_option14 = tk.Button(root, image=gif14[11], text="Envelope", compound=tk.BOTTOM, command=option14, width=button_width, height=button_height)
+button_option14.grid(row=row_num, column=col_num, padx=0, pady=0, sticky="we")
+button_option14.gif_playing = False
+button_option14.current_frame = 11
+button_option14.bind("<Enter>", lambda e: start_gif(e, button_option14, gif14))
+button_option14.bind("<Leave>", lambda e: stop_gif(e, button_option14))
 
 # col_num += 1
 # # Button for option 12
