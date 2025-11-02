@@ -85,6 +85,12 @@ Chladni Plate Visualizer:
        alt="Example Chladni Plate GIF"
        style="max-width: 100%; height: auto; margin: 10px;">
 </div>
+Envelope Visualizer:
+<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
+  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-envelope.gif"
+       alt="Example Envelope GIF"
+       style="max-width: 100%; height: auto; margin: 10px;">
+</div>
 
 
 Bunch of demo videos
@@ -111,7 +117,7 @@ You don't need to install it. Just double click the executable.
 
 Things to know
 ---------------------
-* The Windows releases of this software bundle FFmpeg (https://ffmpeg.org/), it defaults to the FFmpeg in PATH if already installed though. FFmpeg is licensed under the GNU General Public License version 3 (GPL v3). Prebuilt binaries used in this project are from Gyan.dev (https://www.gyan.dev/ffmpeg/builds/). The FFmpeg source code is available at https://ffmpeg.org/download.html#source
+* The Windows and MacOS releases of this software bundle FFmpeg (https://ffmpeg.org/), it defaults to the FFmpeg in PATH if already installed though. FFmpeg is licensed under the GNU General Public License version 3 (GPL v3). Prebuilt binaries used in this project are from Gyan.dev (https://www.gyan.dev/ffmpeg/builds/). The FFmpeg source code is available at https://ffmpeg.org/download.html#source
 
 * The Stereo X/Y and Polar Visualizers only work with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
 
