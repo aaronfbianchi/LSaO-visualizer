@@ -1,4 +1,4 @@
-#python -m venv myenv
+#python3 -m venv myenv
 #source myenv/bin/activate
 #myenv\Scripts\activate
 #pip install scipy
@@ -682,9 +682,10 @@ def generate_histogram(output_name,input_audio, channel,fps, res_width, res_heig
     resampled_hist = np.zeros((n_frames,res_width))
     
     if curve_style == "Flat": #RESMAPLING BADLY THE HISTOGRAM
-        repeat_counts = np.floor(res_width * np.ones(bars) / bars).astype(int)
-        remainder = res_width - repeat_counts.sum()
-        repeat_counts[:remainder] += 1
+        #AQUI SOLO SE OBTIENEN LAS POSICIONES DEL VETOR ORIGINAL PARA USARLO 100000 VECES DESPUES EN EL FOR
+        idx = np.linspace(0, bars, res_width, endpoint=False)
+        idx = np.floor(idx).astype(int)
+
     elif curve_style == "Linear":
         old_x = np.linspace(0, bars - 1, bars)
         new_x = np.linspace(0, bars - 1, res_width)
@@ -694,10 +695,10 @@ def generate_histogram(output_name,input_audio, channel,fps, res_width, res_heig
         hist[i,:], bins = np.histogram(audioShaped, bins=bars, range=(-32768, 32767))
         
         if curve_style == "Flat":
-            resampled_hist[i,:] = np.repeat(hist[i,:], repeat_counts)
-            #resampled_hist[i,:] = resampled_hist[i,:]/np.max(resampled_hist[i,:])
+            resampled_hist[i,:] = hist[i,idx]
         elif curve_style == "Linear":
             resampled_hist[i,:] = np.interp(new_x, old_x, hist[i,:])
+
     if curve_style == "FFT Resample":
         resampled_hist = abs(signal.resample(hist, res_width, axis = 1))
         
@@ -2779,7 +2780,7 @@ class HistogramWindow:
 
     def __init__(self, master):
         self.master = master
-        self.master.title("Histogram Visualizer v0.04 by Aaron F. Bianchi")
+        self.master.title("Histogram Visualizer v0.05 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -4190,7 +4191,7 @@ FFMPEG = ffmpeg_ubicacion()
 FFPROBE = ffprobe_ubicacion()
 
 root = tk.Tk()
-root.title("LSaO Visualizer v1.06")
+root.title("LSaO Visualizer v1.07")
 #root.geometry("700x600")
 
 def load_gif(path):
