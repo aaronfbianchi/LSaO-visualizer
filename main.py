@@ -91,14 +91,8 @@ def convert_vid(input_audio, output_name, vidfor):
         print(f"Error: {e}")
 
 def ffmpeg_ubicacion():
-    ffmpeg_PATH = shutil.which("ffmpeg")
-    if ffmpeg_PATH:
-        return ffmpeg_PATH
-
-    if getattr(sys, "frozen", False): 
-        base_path = sys._MEIPASS
-    else: 
-        base_path = os.path.dirname(os.path.abspath(__file__))
+    base_path = os.getcwd()
+    print(base_path)
 
     if sys.platform == "win32":
         ffmpeg_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffmpeg.exe")
@@ -108,25 +102,27 @@ def ffmpeg_ubicacion():
     if os.path.exists(ffmpeg_bundled):
         return ffmpeg_bundled
 
+    ffmpeg_PATH = shutil.which("ffmpeg")
+    if ffmpeg_PATH:
+        return ffmpeg_PATH
+
     raise FileNotFoundError("FFmpeg not found in PATH or bundled with the app.")
 
 def ffprobe_ubicacion():
-    ffprobe_PATH = shutil.which("ffprobe")
-    if ffprobe_PATH:
-        return ffprobe_PATH
-
-    if getattr(sys, "frozen", False): 
-        base_path = sys._MEIPASS
-    else: 
-        base_path = os.path.dirname(os.path.abspath(__file__))
+    base_path = os.getcwd()
+    print(base_path)
 
     if sys.platform == "win32":
-        ffprobe_bundled = os.path.join(base_path, "ffprobe", "bin", "ffprobe.exe")
+        ffprobe_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffprobe.exe")
     else:
-        ffprobe_bundled = os.path.join(base_path, "ffprobe", "bin", "ffprobe")
+        ffprobe_bundled = os.path.join(base_path, "ffmpeg", "bin", "ffprobe")
 
     if os.path.exists(ffprobe_bundled):
         return ffprobe_bundled
+
+    ffprobe_PATH = shutil.which("ffprobe")
+    if ffprobe_PATH:
+        return ffprobe_PATH
 
     raise FileNotFoundError("FFprobe not found in PATH or bundled with the app.")
 
