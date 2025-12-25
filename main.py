@@ -4,6 +4,8 @@
 #pip install scipy
 #pip install pyinstaller
 #pyinstaller --onefile --console main.py
+#sudo apt install libportaudio2
+
 
 import tkinter as tk
 from tkinter import ttk
@@ -19,10 +21,15 @@ import webbrowser
 from PIL import Image, ImageTk
 import shutil
 import sys
+import time
+import threading
+import queue
+import sounddevice as sd
 
 ######################################################################
 ## LINEAR SPRECTRUM AND OSCILLOSCOPE VISUALIZER by Aarón F. Bianchi ##
 ######################################################################
+
 
 def read_audio_samples(input_file):
     cmd = [FFMPEG, '-i', input_file, '-f', 's16le', '-']
@@ -164,12 +171,10 @@ def generate_spectrum(output_name,input_audio, channel,fps, res_width, res_heigh
     for i in range(n_frames):
         audioShaped[i,:] = audio[i*size_frame : (i+1)*size_frame]
     
-    w_hamming = np.zeros(size_frame)
-    for h in range(size_frame): ## WINDOWING FOR CLEANER CURVE
-        w_hamming[h] = 0.54 - 0.46*np.cos(2*np.pi*(h+1)/size_frame)
-    
-    for i in range(n_frames):
-        audioShaped[i,:] = audioShaped[i,:]*w_hamming
+    N = size_frame
+    h = np.arange(N)
+    w_hamming = 0.54 - 0.46 * np.cos(2 * np.pi * h / (N - 1))
+    audioShaped = audioShaped*w_hamming
     
     fsong = abs(np.fft.rfft(audioShaped, axis = 1))
     
@@ -271,16 +276,7 @@ def generate_spectrum(output_name,input_audio, channel,fps, res_width, res_heigh
             for m in range(res_width):
                 frameData[(res_height - int(fsong_comp[i,m])):res_height, m] = True
     
-    
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -299,6 +295,91 @@ def generate_spectrum(output_name,input_audio, channel,fps, res_width, res_heigh
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
 
+def live_spectrum(block, channel, res_width, res_height, xlow, xhigh, limt_junk, attenuation_steep, junk_threshold, threshold_steep, style, thickness):
+    block = block.T
+    if block.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.transpose(np.mean(block, axis = 0))
+        elif channel == "Left":
+            audio = np.transpose(block[0,:])
+        elif channel == "Right":
+            audio = np.transpose(block[1,:])
+    else:
+        audio = np.transpose(block)
+
+    N = len(audio)
+    h = np.arange(N)
+    w_hamming = 0.54 - 0.46 * np.cos(2 * np.pi * h / (N - 1))
+
+    audio = audio*w_hamming
+    fsong = abs(np.fft.rfft(audio))
+
+    xlow = np.max((xlow,1))
+    xhigh = np.min((xhigh,48000/2))
+    xhigh = np.max((xhigh,xlow + 100))
+    xlimlow = int(np.ceil(len(fsong)*xlow/48000*2)) - 1
+    xlimhigh = int(np.ceil(len(fsong)*xhigh/48000*2)) - 1
+
+    fsong_trim = fsong[xlimlow:xlimhigh]
+    extra_width = 0.25 ##EXTRA WIDTH TO HOUSE THE WIERD RESAMPLE ARTIFACTS THAT ARE LATER GONNA BE DELETED
+    #fsong_trim_pad = np.pad(fsong_trim,int(len(fsong_trim)*extra_width), 'edge')
+
+    fsong_res = abs(signal.resample(fsong_trim, int(res_width*(1 + extra_width)))) ## RESAMPLING TO THE WIDTH OF THE VIDEO
+    fsong_res = fsong_res[0:int(len(fsong_res)/(1 + extra_width))]/50
+
+    if attenuation_steep == 0.0: # and attenuation_steep >= -0.00001:
+        fsong_comp = fsong_res ## NO ATTENUATION
+    else: ## BASS ATTENUATION
+        if attenuation_steep < 0.0:
+            attenuation_steep = np.max((attenuation_steep,-10))
+            attenuation_steep = 1/attenuation_steep
+
+        x_ax = np.linspace(0,20,len(fsong_res))
+        x_ax = 1 - np.e**(-x_ax/(attenuation_steep))
+
+        fsong_comp = fsong_res*x_ax ## BASS ATTENUATION
+
+    if limt_junk:
+        fsong_comp = 1/(1 + np.e**(junk_threshold - threshold_steep*fsong_comp)) ## JUNK REJECTION AND LIMITING
+        fsong_comp = fsong_comp - np.min(fsong_comp) ## SET MIN TO 0
+
+
+    if style == "Just Points": ## DRAWS DOTS IN SCREEN
+        points = True
+        filled = False
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
+        points = False
+        filled = False
+    elif style == "Filled Spectrum": ## DRAWS FILLED SPECTRUM
+        points = False
+        filled = True
+
+    fsong_comp = np.clip(fsong_comp,0,1)
+    fsong_comp = res_height*fsong_comp
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+    if filled == False:
+        if points:## DRAWS JUST POINTS
+            for m in range(res_width - 1):
+                frameData[res_height - int(fsong_comp[m]) - 1, m] = True
+
+        else: ## DRAWS A LINE (1.5x SLOW)
+            for m in range(res_width - 2):
+                point1 = fsong_comp[m]
+                point2 = fsong_comp[m+1]
+                if  int(point1) == int(point2):
+                    frameData[res_height - int(fsong_comp[m]) - 1, m] = True
+                if  int(point1) > int(point2):
+                    frameData[res_height - int(point1) -1: res_height - int(point2) -1, m] = True
+                else:
+                    frameData[res_height - int(point2) -1: res_height - int(point1) -1, m] = True
+    else: ## FILLED SPECTRUM
+        for m in range(res_width - 1):
+            frameData[(res_height - int(fsong_comp[m])):res_height, m] = True
+    frameData = apply_thickness(frameData, thickness)
+
+    return frameData
+
 def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_height, t_smoothing, xlow, xhigh, min_dB, style, thickness, compression, callback_function):
 
     root, vidfor = os.path.splitext(output_name)
@@ -306,27 +387,15 @@ def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_he
     song, fs = read_audio_samples(input_audio)
     song = song.T.astype(np.float16)
     
-    #oversampling = 8 ## SMOOTHING IN THE CURVE (INTEGER)
-    #t_smoothing = 1 ## TIME SMOOTHING (INTEGER)
-    print(f"song {song.shape}")
-    print(f"song {song.shape[0]}")
     if song.shape[0] == 2:
         if channel == "Both (Merge to mono)":
             audio = np.transpose(np.mean(song, axis = 0))
-            print(f"audio {audio.shape}")
         elif channel == "Left":
             audio = np.transpose(song[0,:])
         elif channel == "Right":
             audio = np.transpose(song[1,:])
     else:
         audio = np.transpose(song)
-        print(f"audio {audio.shape}")
-
-    # if fil:
-    #    N = 91
-    #    h = np.cos(np.linspace(0,2*np.pi,N)) - 1
-    #    h[int((N-1)/2)] = -sum(h) + h[int((N-1)/2)]
-    #    audio = np.convolve(audio, h, mode = 'same')
     
     size_frame = int(np.round(fs*t_smoothing/fps))
     n_frames = int(np.ceil(len(audio)/size_frame))
@@ -337,17 +406,13 @@ def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_he
     for i in range(n_frames):
         audioShaped[i,:] = audio[i*size_frame : (i+1)*size_frame]
     
-    w_hamming = np.zeros(size_frame)
-    for h in range(size_frame): ## WINDOWING FOR CLEANER CURVE
-        w_hamming[h] = 0.54 - 0.46*np.cos(2*np.pi*(h+1)/size_frame)
-    
-    for i in range(n_frames):
-        audioShaped[i,:] = audioShaped[i,:]*w_hamming
+    N = size_frame
+    h = np.arange(N)
+    w_hamming = 0.54 - 0.46 * np.cos(2 * np.pi * h / (N - 1))
+    audioShaped = audioShaped*w_hamming
     
     fsong = abs(np.fft.rfft(audioShaped, axis = 1))
     
-    #xlow = 1 ## LOWER LIMIT FREQ. TO BE DISPLAYED
-    #xhigh = 13000 ## HIGHER LIMIT FREQ. TO BE DISPLAYED
     xlow = np.max((xlow,1))
     xhigh = np.min((xhigh,fs/2))
     xlimlow = int(np.ceil(fsong.shape[1]*xlow/fs*2)) - 1
@@ -379,7 +444,6 @@ def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_he
     
     fsong_comp = 0.95*res_height*(fsong_res_2/np.max(fsong_res_2)) ## NORMALIZATION AGAIN
     
-    #style = 2 ## STYLE OF THE DRAWING
     if style == "Just Points": ## DRAWS DOTS IN SCREEN
         points = True
         filled = False
@@ -410,7 +474,6 @@ def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_he
     
     ffmpeg_process = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
-    # Generate and save each frame as an image
     for i in range(num_frames):
         frameData = np.zeros((res_height, res_width), dtype=bool)
         if filled == False:
@@ -432,16 +495,7 @@ def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_he
             for m in range(res_width):
                 frameData[(res_height - int(fsong_comp[i,m])):res_height, m] = True
     
-    
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -460,6 +514,85 @@ def generate_spectrum_dB(output_name,input_audio, channel,fps, res_width, res_he
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
     
+def live_spectrum_dB(block, channel, res_width, res_height, xlow, xhigh, min_dB, style, thickness):
+    block = block.T
+    if block.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.transpose(np.mean(block, axis = 0))
+        elif channel == "Left":
+            audio = np.transpose(block[0,:])
+        elif channel == "Right":
+            audio = np.transpose(block[1,:])
+    else:
+        audio = np.transpose(block)
+
+    N = len(audio)
+    h = np.arange(N)
+    w_hamming = 0.54 - 0.46 * np.cos(2 * np.pi * h / (N - 1))
+
+    audio = audio*w_hamming
+    fsong = abs(np.fft.rfft(audio))
+
+    xlow = np.max((xlow,1))
+    xhigh = np.min((xhigh,48000/2))
+    xhigh = np.max((xhigh,xlow + 100))
+    xlimlow = int(np.ceil(len(fsong)*xlow/48000*2)) - 1
+    xlimhigh = int(np.ceil(len(fsong)*xhigh/48000*2)) - 1
+
+    fsong_trim = fsong[xlimlow:xlimhigh]
+    extra_width = 0.25 ##EXTRA WIDTH TO HOUSE THE WIERD RESAMPLE ARTIFACTS THAT ARE LATER GONNA BE DELETED
+    #fsong_trim_pad = np.pad(fsong_trim,int(len(fsong_trim)*extra_width), 'edge')
+
+    fsong_res = abs(signal.resample(fsong_trim, int(res_width*(1 + extra_width)))) ## RESAMPLING TO THE WIDTH OF THE VIDEO
+    fsong_res = fsong_res[0:int(len(fsong_res)/(1 + extra_width))]/50
+
+    low_dB = min_dB
+    high_dB = 6
+    #linear_min = 10 ** (low_dB / 20)
+    #linear_max = 10 ** (high_dB / 20)
+    #fsong_res = fsong_res * (linear_max - linear_min) + linear_min
+    fsong_res = 20*np.log10(fsong_res)
+    fsong_res = (fsong_res - low_dB) / (high_dB - low_dB)
+    fsong_res = np.clip(fsong_res, low_dB, None) #SET FLOOR DB
+    #fsong_res = fsong_res/np.max(fsong_res) #NORMALIZATION
+    fsong_res = np.clip(fsong_res, 0, 1) # CLIP FROM 0 TO 1
+
+    if style == "Just Points": ## DRAWS DOTS IN SCREEN
+        points = True
+        filled = False
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
+        points = False
+        filled = False
+    elif style == "Filled Spectrum": ## DRAWS FILLED SPECTRUM
+        points = False
+        filled = True
+
+    fsong_comp = np.clip(fsong_res,0,1)
+    fsong_comp = res_height*fsong_comp
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+    if filled == False:
+        if points:## DRAWS JUST POINTS
+            for m in range(res_width - 1):
+                frameData[res_height - int(fsong_comp[m]) - 1, m] = True
+
+        else: ## DRAWS A LINE (1.5x SLOW)
+            for m in range(res_width - 2):
+                point1 = fsong_comp[m]
+                point2 = fsong_comp[m+1]
+                if  int(point1) == int(point2):
+                    frameData[res_height - int(fsong_comp[m]) - 1, m] = True
+                if  int(point1) > int(point2):
+                    frameData[res_height - int(point1) -1: res_height - int(point2) -1, m] = True
+                else:
+                    frameData[res_height - int(point2) -1: res_height - int(point1) -1, m] = True
+    else: ## FILLED SPECTRUM
+        for m in range(res_width - 1):
+            frameData[(res_height - int(fsong_comp[m])):res_height, m] = True
+    frameData = apply_thickness(frameData, thickness)
+
+    return frameData
+
 def generate_spec_balance(output_name,input_audio,fps, res_width, res_height, t_smoothing, xlow, xhigh, style, thickness, compression, callback_function):
 
     root, vidfor = os.path.splitext(output_name)
@@ -487,12 +620,11 @@ def generate_spec_balance(output_name,input_audio,fps, res_width, res_height, t_
         audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame]
         audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame]
 
-    w_hamming = np.zeros(size_frame)
-    for h in range(size_frame): ## WINDOWING FOR CLEANER CURVE
-        w_hamming[h] = 0.54 - 0.46*np.cos(2*np.pi*(h+1)/size_frame)
-    for i in range(n_frames):
-        audioLShaped[i,:] = audioLShaped[i,:]*w_hamming
-        audioRShaped[i,:] = audioRShaped[i,:]*w_hamming
+    N = size_frame
+    h = np.arange(N)
+    w_hamming = 0.54 - 0.46 * np.cos(2 * np.pi * h / (N - 1))
+    audioLShaped = audioLShaped*w_hamming
+    audioRShaped = audioRShaped*w_hamming
 
     fsongL = abs(np.fft.rfft(audioLShaped, axis = 1))
     fsongR = abs(np.fft.rfft(audioRShaped, axis = 1))
@@ -613,15 +745,7 @@ def generate_spec_balance(output_name,input_audio,fps, res_width, res_height, t_
                 else:
                     frameData[res_height - m - 1, width_o2:point1- res_width] = True
    
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -639,7 +763,85 @@ def generate_spec_balance(output_name,input_audio,fps, res_width, res_height, t_
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
- 
+
+def live_spec_balance(block, res_width, res_height, xlow, xhigh, style, thickness):
+    block = block.T
+
+    audioL = np.transpose(block[0,:])
+    audioR = np.transpose(block[1,:])
+
+    N = len(audioL)
+    h = np.arange(N)
+    w_hamming = 0.54 - 0.46 * np.cos(2 * np.pi * h / (N - 1))
+
+    audioL = audioL*w_hamming
+    audioR = audioR*w_hamming
+
+    fsongL = abs(np.fft.rfft(audioL))
+    fsongR = abs(np.fft.rfft(audioR))
+
+    xlow = np.max((xlow,1))
+    xhigh = np.min((xhigh,48000/2))
+    xhigh = np.max((xhigh,xlow + 100))
+    xlimlow = int(np.ceil(len(fsongL)*xlow/48000*2)) - 1
+    xlimhigh = int(np.ceil(len(fsongL)*xhigh/48000*2)) - 1
+
+    fsongL_trim = fsongL[xlimlow:xlimhigh]
+    fsongR_trim = fsongR[xlimlow:xlimhigh]
+    extra_width = 0.25 ##EXTRA WIDTH TO HOUSE THE WIERD RESAMPLE ARTIFACTS THAT ARE LATER GONNA BE DELETED
+    fsongL_res = abs(signal.resample(fsongL_trim, int(res_height*(1 + extra_width)))) ## RESAMPLING TO THE WIDTH OF THE VIDEO
+    fsongR_res = abs(signal.resample(fsongR_trim, int(res_height*(1 + extra_width)))) ## RESAMPLING TO THE WIDTH OF THE VIDEO
+    fsongL_res = fsongL_res[0:int(len(fsongL_res)/(1 + extra_width))]
+    fsongR_res = fsongR_res[0:int(len(fsongR_res)/(1 + extra_width))]
+
+    fsongL_res_2 = np.log10(fsongL_res)
+    fsongR_res_2 = np.log10(fsongR_res)
+    fsongL_res_2 = np.log(np.e**10 + np.e**fsongL_res_2) #soft clipping
+    fsongR_res_2 = np.log(np.e**10 + np.e**fsongR_res_2) #soft clipping
+
+    fsong_vert = (fsongR_res_2 - fsongL_res_2)*2000
+    fsong_vert = 0.95*res_width/2*(fsong_vert) + res_width/2
+    fsong_vert = np.clip(fsong_vert, 0, res_width - 1)
+    if style == "Just Points": ## DRAWS DOTS IN SCREEN
+        points = True
+        filled = False
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
+        points = False
+        filled = False
+    elif style == "Filled Spectrum": ## DRAWS FILLED SPECTRUM
+        points = False
+        filled = True
+
+    width_o2 = int(res_width/2)
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+    if filled == False:
+        if points:## DRAWS JUST POINTS
+            for m in range(res_height - 1):
+                frameData[res_height - m - 1, int(fsong_vert[m]) - 1] = True
+
+        else: ## DRAWS A LINE (1.5x SLOW)
+            for m in range(res_height - 2):
+                point1 = fsong_vert[m]
+                point2 = fsong_vert[m+1]
+                if  int(point1) == int(point2):
+                    frameData[res_height - m - 1, int(point1) - 1] = True
+                if  point1 >= point2:
+                    frameData[res_height - m - 1, int(point2) -1: int(point1) -1] = True
+                else:
+                    frameData[res_height - m - 1, int(point1) -1: int(point2) -1] = True
+    else: ## FILLED SPECTRUM
+        for m in range(res_height - 1):
+            point1 = int(fsong_vert[m])
+            if point1 < width_o2:
+                frameData[res_height - m - 1, point1- res_width:width_o2] = True
+            else:
+                frameData[res_height - m - 1, width_o2:point1- res_width] = True
+
+    frameData = apply_thickness(frameData, thickness)
+
+    return frameData
+
 def generate_histogram(output_name,input_audio, channel,fps, res_width, res_height, size_frame, bars, sensitivity, curve_style, style, thickness, compression, callback_function):
 
     root, vidfor = os.path.splitext(output_name)
@@ -755,16 +957,7 @@ def generate_histogram(output_name,input_audio, channel,fps, res_width, res_heig
             for m in range(res_width):
                 frameData[(res_height - int(fsong_comp[i,m])):res_height, m] = True
     
-    
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -782,6 +975,87 @@ def generate_histogram(output_name,input_audio, channel,fps, res_width, res_heig
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+def live_histogram(block, channel, res_width, res_height, bars, sensitivity, curve_style, style, thickness):
+    bars = np.maximum(bars,1)
+    block = block.T
+    if block.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.mean(block, axis = 0)
+        elif channel == "Left":
+            audio = block[0,:]
+        elif channel == "Right":
+            audio = block[1,:]
+    else:
+        audio = block
+
+    hist = np.zeros((1,bars))
+    resampled_hist = np.zeros((1,res_width))
+
+    if curve_style == "Flat": #RESMAPLING BADLY THE HISTOGRAM
+        #AQUI SOLO SE OBTIENEN LAS POSICIONES DEL VETOR ORIGINAL PARA USARLO 100000 VECES DESPUES EN EL FOR
+        idx = np.linspace(0, bars, res_width, endpoint=False)
+        idx = np.floor(idx).astype(int)
+
+    elif curve_style == "Linear":
+        old_x = np.linspace(0, bars - 1, bars)
+        new_x = np.linspace(0, bars - 1, res_width)
+
+    hist, bins = np.histogram(audio, bins=bars, range=(-1, 1))
+
+    if curve_style == "Flat":
+        resampled_hist = hist[idx]
+    elif curve_style == "Linear":
+        resampled_hist = np.interp(new_x, old_x, hist)
+
+    if curve_style == "FFT Resample":
+        resampled_hist = abs(signal.resample(hist, res_width))
+
+    if sensitivity > 0:
+        norm_factor = np.log(sensitivity*(48000//60)+1)
+        fsong_comp = np.log(sensitivity*resampled_hist+1)
+    else:
+        norm_factor = 48000//60
+        fsong_comp = resampled_hist
+
+    fsong_comp = fsong_comp/norm_factor*(res_height-1)
+    fsong_comp = np.clip(fsong_comp, 0, res_height-1)
+    #fsong_comp = (res_height-1)*(fsong_comp/np.max(fsong_comp)).astype(np.float16) ## NORMALIZATION AGAIN
+
+    #style = 2 ## STYLE OF THE DRAWING
+    if style == "Just Points": ## DRAWS DOTS IN SCREEN
+        points = True
+        filled = False
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
+        points = False
+        filled = False
+    elif style == "Filled Histogram": ## DRAWS FILLED SPECTRUM
+        points = False
+        filled = True
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+    if filled == False:
+        if points:## DRAWS JUST POINTS
+            for m in range(res_width):
+                frameData[res_height - int(fsong_comp[m]) - 1, m] = True
+
+        else: ## DRAWS A LINE (1.5x SLOW)
+            for m in range(res_width - 1):
+                point1 = fsong_comp[m]
+                point2 = fsong_comp[m+1]
+                #if  int(point1) == int(point2):
+                frameData[res_height - int(fsong_comp[m]) - 1, m] = True
+                if  int(point1) > int(point2):
+                    frameData[res_height - int(point1) -1: res_height - int(point2) -1, m] = True
+                else:
+                    frameData[res_height - int(point2) -1: res_height - int(point1) -1, m] = True
+    else: ## FILLED SPECTRUM
+        for m in range(res_width):
+            frameData[(res_height - int(fsong_comp[m])):res_height, m] = True
+
+    frameData = apply_thickness(frameData, thickness)
+
+    return frameData
 
 def generate_waveform(output_name,input_audio,channel,fps_2, res_width, res_height, note, window_size, style,thickness,compression, callback_function):
 
@@ -894,15 +1168,7 @@ def generate_waveform(output_name,input_audio,channel,fps_2, res_width, res_heig
                     
         oldFrame = frameData    
     
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
     
@@ -921,6 +1187,65 @@ def generate_waveform(output_name,input_audio,channel,fps_2, res_width, res_heig
     callback_function(i,n_frames_2, text_state = True, text_message = "Done, my dood!")
     return 0
 
+
+def live_waveform(block,channel, res_width, res_height, style, thickness):
+
+    block = block.T
+    if block.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.transpose(np.mean(block, axis = 0))
+        elif channel == "Left":
+            audio = np.transpose(block[0,:])
+        elif channel == "Right":
+            audio = np.transpose(block[1,:])
+    else:
+        audio = np.transpose(block)
+
+    #audio = audio/abs(np.max(audio)) #NORMALIZATION
+
+    #freq_tune = note_to_frequency(note)
+    #speed = 48000/freq_tune
+
+    if style == "Just Points": ## DRAWS DOTS IN SCREEN
+        points = True
+        filled = False
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
+        points = False
+        filled = False
+    elif style == "Filled Waveform": ## DRAWS FILLED SPECTRUM
+        points = False
+        filled = True
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+
+    fsong_comp = res_height/2 + audio*0.95*res_height/2
+    fsong_comp = np.clip(fsong_comp,0,res_height-1)
+    xaxis = np.linspace(0,res_width - 1,len(fsong_comp))
+
+    if filled == False:
+        if points:## DRAWS JUST POINTS
+            for m in range(len(fsong_comp)):
+                frameData[res_height - int(fsong_comp[m]) -1, int(xaxis[m])] = True
+        else: ## DRAWS A LINE (1.5x SLOW)
+            for m in range(len(fsong_comp) - 1):
+                point1 = int(fsong_comp[m])
+                point2 = int(fsong_comp[m+1])
+                if  point1 == point2:
+                    frameData[res_height - point1 -1, int(xaxis[m])] = True
+                if  point1 > point2:
+                    frameData[res_height - point1 -1: res_height - point2 -1, int(xaxis[m])] = True
+                else:
+                    frameData[res_height - point2 -1: res_height - point1 -1, int(xaxis[m])] = True
+    else: ## FILLED SPECTRUM
+        for m in range(len(fsong_comp)):
+            point1 = int(fsong_comp[m])
+            if point1 < res_height/2:
+                frameData[int(res_height/2):res_height - point1, int(xaxis[m])] = True
+            else:
+                frameData[res_height - point1:int(res_height/2), int(xaxis[m])] = True
+
+    frameData = apply_thickness(frameData, thickness)
+    return frameData
 
 def generate_waveform_long(output_name,input_audio,channel,fps, res_width, res_height,window_size, style,thickness,compression, callback_function):
     
@@ -1021,15 +1346,7 @@ def generate_waveform_long(output_name,input_audio,channel,fps, res_width, res_h
                     
         oldFrame = frameData    
     
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
     
@@ -1047,6 +1364,45 @@ def generate_waveform_long(output_name,input_audio,channel,fps, res_width, res_h
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+oldWaveLive = np.zeros((48000//60,2))
+
+def live_waveform_long(block, channel, res_width, res_height, thickness):
+
+    global oldWaveLive
+
+    block = block.T
+
+    if block.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.transpose(np.mean(block, axis = 0))
+        elif channel == "Left":
+            audio = np.transpose(block[0,:])
+        elif channel == "Right":
+            audio = np.transpose(block[1,:])
+    else:
+        audio = np.transpose(block)
+
+    audio = np.clip(audio, -1, 1)
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+
+    oldWaveLive = np.roll(oldWaveLive, -1, axis=0)
+    oldWaveLive[-1,1] = np.max(audio)
+    oldWaveLive[-1,0] = np.min(audio)
+
+    fsong_comp = res_height/2 + oldWaveLive*0.95*res_height/2
+
+    window_size = fsong_comp.shape[0]
+    xaxis = np.linspace(0,res_width - 1,window_size)
+    speed_px = int(48000//60*res_width/window_size)
+
+    for m in range(window_size):
+        frameData[int(fsong_comp[m,0])-1 : int(fsong_comp[m,1]), int(xaxis[m])] = True
+
+    frameData = apply_thickness(frameData, thickness)
+
+    return frameData
 
 def generate_envelope(output_name,input_audio,channel,fps, res_width, res_height,window_size, smoothing, style,thickness,compression, callback_function):
 
@@ -1143,19 +1499,9 @@ def generate_envelope(output_name,input_audio,channel,fps, res_width, res_height
             for m in range(int(np.max((0,(window_size - speed)))),window_size):
                     frameData[res_height - int(fsong_comp[m]):res_height, int(xaxis[m])] = True
 
-
-
         oldFrame = frameData
 
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2
+        frameData = apply_thickness(frameData, thickness)
 
         frameData = frameData.astype(np.uint8) * 255
 
@@ -1173,6 +1519,71 @@ def generate_envelope(output_name,input_audio,channel,fps, res_width, res_height
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+oldEnvLive = np.zeros(48000//60)
+
+def live_envelope(block, channel, res_width, res_height,smoothing, style, thickness):
+
+    global oldEnvLive
+
+    block = block.T
+
+    if block.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.transpose(np.mean(block, axis = 0))
+        elif channel == "Left":
+            audio = np.transpose(block[0,:])
+        elif channel == "Right":
+            audio = np.transpose(block[1,:])
+    else:
+        audio = np.transpose(block)
+
+    if style == "Just Points": ## DRAWS DOTS IN SCREEN
+        points = True
+        filled = False
+    elif style == "Curve": ## DRAWS LINE IN SCREEN
+        points = False
+        filled = False
+    elif style == "Filled Envelope": ## DRAWS FILLED SPECTRUM
+        points = False
+        filled = True
+
+    audio = np.clip(audio, -1, 1)
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+
+    oldEnvLive = np.roll(oldEnvLive, -1)
+    oldEnvLive[-1] = np.max(np.abs(audio))
+    oldEnvLive[-1] = oldEnvLive[-1]/(1+smoothing/1000) + oldEnvLive[-2]*(1-1/(1+smoothing/1000))
+
+    fsong_comp = oldEnvLive*0.95*res_height
+
+    window_size = len(fsong_comp)
+    xaxis = np.linspace(0,res_width - 1,window_size)
+    speed_px = int(48000//60*res_width/window_size)
+
+    if filled == False:
+        if points:## DRAWS JUST POINTS
+            for m in range(window_size):
+                frameData[res_height - int(fsong_comp[m]) -1, int(xaxis[m])] = True
+        else: ## DRAWS A LINE (1.5x SLOW)
+            for m in range(window_size - 1):
+                point1 = int(fsong_comp[m])
+                point2 = int(fsong_comp[m+1])
+                if  point1 == point2:
+                    frameData[res_height - point1 -1, int(xaxis[m])] = True
+                if  point1 > point2:
+                    frameData[res_height - point1 -1: res_height - point2 -1, int(xaxis[m])] = True
+                else:
+                    frameData[res_height - point2 -1: res_height - point1 -1, int(xaxis[m])] = True
+    else: ## FILLED SPECTRUM
+        for m in range(window_size):
+            point1 = int(fsong_comp[m])
+            frameData[res_height - int(fsong_comp[m]):res_height, int(xaxis[m])] = True
+
+    frameData = apply_thickness(frameData, thickness)
+
+    return frameData
 
 def generate_oscilloscope(output_name,input_audio,fps, res_width, res_height,interpolation,thickness,compression, callback_function):
 
@@ -1269,15 +1680,7 @@ def generate_oscilloscope(output_name,input_audio,fps, res_width, res_height,int
         for m in range(size_frame):
             frameData[audioLInterp[i,m],audioRInterp[i,m]] = True
 
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -1295,6 +1698,31 @@ def generate_oscilloscope(output_name,input_audio,fps, res_width, res_height,int
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+def live_oscilloscope(block,res_width, res_height,interpolation,thickness):
+    thickness = np.maximum(thickness,1) # AVOID GOING TO THE BACKROOMS
+    interpolation = np.maximum(interpolation,1) # AVOID GOING TO THE BACKROOMS
+    audioL = block[:,0]
+    audioR = -block[:,1]
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+
+    audioLscaled = ((audioL*32768 + 32768) * (res_height-1) / (65535))
+    audioRscaled = ((audioR*32768 + 32768) * (res_width-1) / (65535))
+    if interpolation > 1:
+        audioLInterp = signal.resample(audioLscaled, len(audioLscaled)*interpolation).astype(np.float16)
+        audioRInterp = signal.resample(audioRscaled, len(audioRscaled)*interpolation).astype(np.float16)
+    else:
+        audioLInterp = audioLscaled.astype(np.float16)
+        audioRInterp = audioRscaled.astype(np.float16)
+
+    #CLIPPING FOR SAFETY UWU
+    audioLInterp = np.clip(audioLInterp,0,res_height-1)
+    audioRInterp = np.clip(audioRInterp,0,res_width-1)
+    for m in range(len(audioLInterp)):
+        frameData[int(audioLInterp[m]),int(audioRInterp[m])] = True
+    frameData = apply_thickness(frameData, thickness)
+    return frameData
     
 def generate_polar(output_name,input_audio,channel,fps, res_width, res_height,offset, note, interpolation,thickness,compression, callback_function):
 
@@ -1320,6 +1748,7 @@ def generate_polar(output_name,input_audio,channel,fps, res_width, res_height,of
     
     # A4 ---> 2764.5
     polar_speed = note_to_polarSpeed(note)
+    print(polar_speed)
     
     audio = (audio/np.max(np.max(abs(abs(audio))))).T ##TRANSPOSITION AND NORMALIZATION
     audio = np.clip(audio,-1,1)
@@ -1352,8 +1781,8 @@ def generate_polar(output_name,input_audio,channel,fps, res_width, res_height,of
     print(f"shape audioL {audioL.shape}")
     
     extra_margin = 50
-    audioL = np.pad(audioL,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
-    audioR = np.pad(audioR,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audioL = np.pad(audioL,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audioR = np.pad(audioR,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
     print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
@@ -1419,15 +1848,7 @@ def generate_polar(output_name,input_audio,channel,fps, res_width, res_height,of
         for m in range(size_frame):
             frameData[audioLInterp[i,m],audioRInterp[i,m]] = True
 
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -1445,6 +1866,63 @@ def generate_polar(output_name,input_audio,channel,fps, res_width, res_height,of
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+def live_polar(block,channel,res_width, res_height, offset, note,interpolation,thickness):
+    block = block.T
+    if block.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.mean(block, axis = 0)
+        elif channel == "Left":
+            audio = block[0,:]
+        elif channel == "Right":
+            audio = block[1,:]
+    else:
+        audio = block
+
+    #print(f"audiooooo {audio.shape}")
+
+    polar_speed = note_to_polarSpeed(note)
+    audio = audio + offset
+    if offset != 0:
+        audio = audio / (abs(offset) + 1)
+
+    erre = audio.astype(np.float16)
+
+    if not hasattr(live_polar, "t"): #FRAME COUNTER INSTEAD OF TIME
+        live_polar.t = 0
+    theta = (np.linspace(live_polar.t, live_polar.t + polar_speed*len(erre)/48000, len(erre)) % 2*np.pi).astype(np.float16) ## mod 2pi because numbers get big and with float16 they lack precision
+
+    live_polar.t += polar_speed * len(erre)/48000 # UPDATE FRAME COUNTER
+    #live_polar.t = live_polar.t%(2*np.pi)
+
+    audioL = (erre*np.sin(theta)).astype(np.float16)
+    audioR = (erre*np.cos(theta)).astype(np.float16)
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+
+    extra_margin = 50
+    audioLPad = np.pad(audioL,(extra_margin,extra_margin), 'edge')
+    audioRPad = np.pad(audioR,(extra_margin,extra_margin), 'edge')
+    if interpolation > 1:
+        audioLInterp = signal.resample(audioLPad, len(audioLPad)*interpolation).astype(np.float16)
+        audioRInterp = signal.resample(audioRPad, len(audioRPad)*interpolation).astype(np.float16)
+    else:
+        audioLInterp = audioLPad.astype(np.float16)
+        audioRInterp = audioRPad.astype(np.float16)
+
+    audioLInterp = audioLInterp[extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    audioRInterp = audioRInterp[extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+
+    audioLInterp = ((audioLInterp*31130 + 32768) * (res_height-1) / (65535)).astype(np.int16) ## 31130 = 32768*0.95
+    audioRInterp = ((audioRInterp*31130 + 32768) * (res_width-1) / (65535)).astype(np.int16)  ## 31130 = 32768*0.95
+
+    #CLIPPING FOR SAFETY UWU
+    audioLInterp = np.clip(audioLInterp,0,res_height-1)
+    audioRInterp = np.clip(audioRInterp,0,res_width-1)
+    for m in range(len(audioLInterp)):
+        frameData[int(audioLInterp[m]),int(audioRInterp[m])] = True
+    frameData = apply_thickness(frameData, thickness)
+    return frameData
     
 def generate_polar_stereo(output_name,input_audio,fps, res_width, res_height,offset, note, interpolation,thickness,compression, callback_function):
 
@@ -1496,8 +1974,8 @@ def generate_polar_stereo(output_name,input_audio,fps, res_width, res_height,off
     print(f"shape audioL {audioL.shape}")
     
     extra_margin = 50
-    audioL = np.pad(audioL,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
-    audioR = np.pad(audioR,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audioL = np.pad(audioL,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audioR = np.pad(audioR,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
     print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
@@ -1563,15 +2041,7 @@ def generate_polar_stereo(output_name,input_audio,fps, res_width, res_height,off
         for m in range(size_frame):
             frameData[audioLInterp[i,m],audioRInterp[i,m]] = True
 
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -1589,6 +2059,63 @@ def generate_polar_stereo(output_name,input_audio,fps, res_width, res_height,off
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+def live_polar_stereo(block,res_width, res_height, offset, note,interpolation,thickness):
+    block = block.T
+    audio0 = block[0,:]
+    audio1 = block[1,:]
+
+    polar_speed = note_to_polarSpeed(note)
+    audio0 = audio0 + offset
+    audio1 = audio1 + offset
+    if offset != 0:
+        audio0 = audio0 / (abs(offset) + 1)
+        audio1 = audio1 / (abs(offset) + 1)
+
+    if not hasattr(live_polar, "t"): #FRAME COUNTER INSTEAD OF TIME
+        live_polar.t = 0
+    theta = (np.linspace(live_polar.t, live_polar.t + polar_speed*len(audio0)/48000, len(audio0)) % 2*np.pi).astype(np.float16) ## mod 2pi because numbers get big and with float16 they lack precision
+
+    live_polar.t += polar_speed * len(audio0)/48000 # UPDATE FRAME COUNTER
+    #live_polar.t = live_polar.t%(2*np.pi)
+
+    audioL = (audio0*np.sin(theta)).astype(np.float16) ## 32768*0.95
+    audioR = (audio1*np.cos(theta)).astype(np.float16) ## 32768*0.95
+
+    ########### ROTATION 45 DEG ######################
+    sqrt2_over_2 = np.sqrt(2) / 2
+    audioLr = (audioR*sqrt2_over_2 + audioL*sqrt2_over_2).astype(np.float16)
+    audioRr = (-audioR*sqrt2_over_2 + audioL*sqrt2_over_2).astype(np.float16)
+    print(" ")
+    audioL = audioLr
+    audioR = audioRr
+    ##################################################
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+
+    extra_margin = 50
+    audioLPad = np.pad(audioL,(extra_margin,extra_margin), 'edge')
+    audioRPad = np.pad(audioR,(extra_margin,extra_margin), 'edge')
+    if interpolation > 1:
+        audioLInterp = signal.resample(audioLPad, len(audioLPad)*interpolation).astype(np.float16)
+        audioRInterp = signal.resample(audioRPad, len(audioRPad)*interpolation).astype(np.float16)
+    else:
+        audioLInterp = audioLPad.astype(np.float16)
+        audioRInterp = audioRPad.astype(np.float16)
+
+    audioLInterp = audioLInterp[extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    audioRInterp = audioRInterp[extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+
+    audioLInterp = ((audioLInterp*31130 + 32768) * (res_height-1) / (65535)).astype(np.int16) ## 31130 = 32768*0.95
+    audioRInterp = ((audioRInterp*31130 + 32768) * (res_width-1) / (65535)).astype(np.int16)  ## 31130 = 32768*0.95
+
+    #CLIPPING FOR SAFETY UWU
+    audioLInterp = np.clip(audioLInterp,0,res_height-1)
+    audioRInterp = np.clip(audioRInterp,0,res_width-1)
+    for m in range(len(audioLInterp)):
+        frameData[int(audioLInterp[m]),int(audioRInterp[m])] = True
+    frameData = apply_thickness(frameData, thickness)
+    return frameData
 
 def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_height, note, threshold, thickness,compression, callback_function):
 
@@ -1723,15 +2250,8 @@ def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_heig
         else:
             frameData[xaxis[:, np.newaxis], yaxis] = ~(distances < -threshold)
         #print("yes")
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -1750,6 +2270,53 @@ def generate_recurrence(output_name,input_audio,channel,fps, res_width, res_heig
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+def live_recurrence(block,channel, res_width, res_height, threshold, thickness):
+    block = block.T
+
+    if block.shape[0] == 2:
+        if channel == "Both (Stereo)":
+            audioL = block[0,:].T
+            audioR = block[1,:].T
+        elif channel == "Both (Merge to mono)":
+            audioL = np.mean(block, axis = 0).T
+            audioR = np.mean(block, axis = 0).T
+        elif channel == "Left":
+            audioL = block[0,:].T
+            audioR = block[0,:].T
+        elif channel == "Right":
+            audioL = block[1,:].T
+            audioR = block[1,:].T
+    else:
+        audioL = block.T
+        audioR = block.T
+
+    size_frameL = len(audioL)
+    size_frameR = len(audioR)
+    if size_frameL < res_height: #JUST IN CASE THE HEIGHT OR WIDTH IS BIGGER THAN THE # OF SAMPLES IN THE SEGMENT
+        audioL = signal.resample(audioL, res_height)
+        audioL = np.clip(audioL,-1,1)
+        size_frameL = res_height
+    if size_frameR < res_width:
+        audioR = signal.resample(audioR, res_width)
+        audioR = np.clip(audioR,-1,1)
+        size_frameR = res_width
+
+    xaxis = np.linspace(0,res_width - 1,size_frameR).astype(int)
+    yaxis = np.linspace(0,res_height - 1,size_frameL).astype(int)
+
+    frameData = np.zeros((res_width, res_height), dtype=bool)
+
+    audioLseg = audioL[:, np.newaxis]
+    audioRseg = audioR[:, np.newaxis]
+    distances = np.abs(audioLseg.T - audioRseg)
+    if threshold >= 0:
+        frameData[xaxis[:, np.newaxis], yaxis] = (distances < threshold)
+    else:
+        frameData[xaxis[:, np.newaxis], yaxis] = ~(distances < -threshold)
+
+    frameData = apply_thickness(frameData, thickness)
+    return frameData
 
 def generate_chladni(output_name,input_audio,channel,fps, res_width, res_height, mode, zoom, exp_filter, threshold, thickness,compression, callback_function):
 
@@ -1894,15 +2461,7 @@ def generate_chladni(output_name,input_audio,channel,fps, res_width, res_height,
 
         frameData = np.vstack((np.hstack((chladniQ4, chladniQ3)), np.hstack((chladniQ2, chladniQ1))))
 
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2
+        frameData = apply_thickness(frameData, thickness)
 
         frameData = frameData.astype(np.uint8) * 255
 
@@ -1921,6 +2480,115 @@ def generate_chladni(output_name,input_audio,channel,fps, res_width, res_height,
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+envL_past = 0
+envR_past = 0
+
+def live_chladni(block,channel, res_width, res_height, mode, zoom, exp_filter, threshold, thickness):
+
+    global envL_past
+    global envR_past
+
+    block = block.T
+
+    if block.shape[0] == 2:
+        if channel == "Both (Stereo)":
+            audioL = block[0,:].T
+            audioR = block[1,:].T
+        elif channel == "Both (Merge to mono)":
+            audioL = np.mean(block, axis = 0).T
+            audioR = np.mean(block, axis = 0).T
+        elif channel == "Left":
+            audioL = block[0,:].T
+            audioR = block[0,:].T
+        elif channel == "Right":
+            audioL = block[1,:].T
+            audioR = block[1,:].T
+    else:
+        audioL = block.T
+        audioR = block.T
+
+    #if fil: #HIGH-PASS FILTER FOR HAVING MORE TRANSIENTS
+    N = 5
+    h = np.cos(np.linspace(0,2*np.pi,N)) - 1
+    h[int((N-1)/2)] = -sum(h) + h[int((N-1)/2)]
+    audioL = np.convolve(audioL, h, mode = 'same')
+    audioR = np.convolve(audioR, h, mode = 'same')
+
+    xaxis = np.linspace(1/res_width , res_width/zoom , int(res_width/2)).astype(np.float32) #solo el primer cuadrante
+    yaxis = np.linspace(1/res_height , res_height/zoom , int(res_height/2)).astype(np.float32) #solo el primer cuadrante
+    Xmap, Ymap = np.meshgrid(xaxis, yaxis)
+    Xmap = np.pi * Xmap.astype(np.float32)
+    Ymap = np.pi * Ymap.astype(np.float32)
+
+    chladniQ1 = np.zeros((int(res_width/2), int(res_height/2)), dtype=bool)
+    chladniQ2 = chladniQ1
+    chladniQ3 = chladniQ1
+    chladniQ4 = chladniQ1
+
+    frameData = np.zeros((res_width, res_height), dtype=bool)
+    j = 0
+
+    exp_filter = np.sqrt(exp_filter)
+
+    envL_now = 10*np.max(audioL) #DETERMINAR LA ENVOLVENTE
+    envR_now = 10*np.max(audioR) #DETERMINAR LA ENVOLVENTE
+
+    envL = envL_now*(1-exp_filter) + envL_past*exp_filter
+    envR = envR_now*(1-exp_filter) + envR_past*exp_filter
+
+    envL_past = envL
+    envR_past = envR
+
+    a = 5*(2+np.sin(1+time.time()))
+    b = 5*(2-np.cos(1+time.time()))
+
+    match mode:
+        case "Sine":
+            trgXL = np.sin(Xmap / envL*a)
+            trgXR = np.sin(Xmap / envR*b)
+            trgYL = np.sin(Ymap / envL*a)
+            trgYR = np.sin(Ymap / envR*b)
+        case "Cosine":
+            trgXL = np.cos(Xmap / envL*a)
+            trgXR = np.cos(Xmap / envR*b)
+            trgYL = np.cos(Ymap / envL*a)
+            trgYR = np.cos(Ymap / envR*b)
+        case "Tangent":
+            trgXL = np.tan(Xmap / envL*a)
+            trgXR = np.tan(Xmap / envR*b)
+            trgYL = np.tan(Ymap / envL*a)
+            trgYR = np.tan(Ymap / envR*b)
+        case "Cotangent":
+            trgXL = 1/np.tan(Xmap / envL*a)
+            trgXR = 1/np.tan(Xmap / envR*b)
+            trgYL = 1/np.tan(Ymap / envL*a)
+            trgYR = 1/np.tan(Ymap / envR*b)
+        case "Secant":
+            trgXL = 1/np.cos(Xmap / envL*a)
+            trgXR = 1/np.cos(Xmap / envR*b)
+            trgYL = 1/np.cos(Ymap / envL*a)
+            trgYR = 1/np.cos(Ymap / envR*b)
+        case "Cosecant":
+            trgXL = 1/np.sin(Xmap / envL*a)
+            trgXR = 1/np.sin(Xmap / envR*b)
+            trgYL = 1/np.sin(Ymap / envL*a)
+            trgYR = 1/np.sin(Ymap / envR*b)
+
+    if threshold >= 0:
+        chladniQ1 = (np.abs(a * trgXL * trgYR + b * trgXR * trgYL) < threshold)
+    else:
+        chladniQ1 = ~(np.abs(a * trgXL * trgYR + b * trgXR * trgYL) < -threshold)
+
+    chladniQ2 = np.fliplr(chladniQ1)
+    chladniQ3 = np.flipud(chladniQ1)
+    chladniQ4 = np.flipud(chladniQ2)
+
+    frameData = np.vstack((np.hstack((chladniQ4, chladniQ3)), np.hstack((chladniQ2, chladniQ1))))
+
+    frameData = apply_thickness(frameData, thickness)
+
+    return frameData
      
 def generate_poincare(output_name,input_audio,channel ,fps, res_width, res_height, delay, interpolation,thickness,compression, callback_function):
 
@@ -1957,8 +2625,8 @@ def generate_poincare(output_name,input_audio,channel ,fps, res_width, res_heigh
     print(f"shape audioL {audioL.shape}")
     
     extra_margin = 50
-    audioL = np.pad(audioL,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
-    audioR = np.pad(audioR,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audioL = np.pad(audioL,(extra_margin,extra_margin),'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audioR = np.pad(audioR,(extra_margin,extra_margin),'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
     print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
@@ -2029,15 +2697,7 @@ def generate_poincare(output_name,input_audio,channel ,fps, res_width, res_heigh
         for m in range(size_frame):
             frameData[audioLInterp[i,m],audioRInterp[i,m]] = True
 
-        #thickness = 1 ## REPEATS THE IMAGE SO IT'S THICKER
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -2055,6 +2715,44 @@ def generate_poincare(output_name,input_audio,channel ,fps, res_width, res_heigh
     os.remove("resources/temporary_file.mp4")
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
+
+def live_poincare(block,channel,res_width, res_height,delay,interpolation,thickness):
+    block = block.T
+    if block.shape[0] == 2:
+        if channel == "Both (Merge to mono)":
+            audio = np.mean(block, axis = 0)
+        elif channel == "Left":
+            audio = block[0,:]
+        elif channel == "Right":
+            audio = block[1,:]
+    else:
+        audio = block
+
+    thickness = np.maximum(thickness,1) # AVOID GOING TO THE BACKROOMS
+    interpolation = np.maximum(interpolation,1) # AVOID GOING TO THE BACKROOMS
+
+    audioL = np.concatenate((audio[delay:], audio[:delay])).astype(np.float16)
+    audioR = -audio.astype(np.float16)
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+
+    if interpolation > 1:
+        audioLInterp = signal.resample(audioL, len(audioL)*interpolation).astype(np.float16)
+        audioRInterp = signal.resample(audioR, len(audioR)*interpolation).astype(np.float16)
+    else:
+        audioLInterp = audioL.astype(np.float16)
+        audioRInterp = audioR.astype(np.float16)
+
+    audioLInterp = ((audioLInterp*32768 + 32768) * (res_height-1) / (65535)).astype(np.int16)
+    audioRInterp = ((audioRInterp*32768 + 32768) * (res_width-1) / (65535)).astype(np.int16)
+
+    #CLIPPING FOR SAFETY UWU
+    audioLInterp = np.clip(audioLInterp,0,res_height-1).astype(np.int16)
+    audioRInterp = np.clip(audioRInterp,0,res_width-1).astype(np.int16)
+    for m in range(len(audioLInterp)):
+        frameData[int(audioLInterp[m]),int(audioRInterp[m])] = True
+    frameData = apply_thickness(frameData, thickness)
+    return frameData
     
 def generate_delay_embed(output_name,input_audio,channel ,fps, res_width, res_height, delay1,delay2, beta_p, beta_s, alfa_p, alfa_s,interpolation,thickness,compression, callback_function):
 
@@ -2096,9 +2794,9 @@ def generate_delay_embed(output_name,input_audio,channel ,fps, res_width, res_he
     print(f"shape audio1 {audio1.shape}")
     
     extra_margin = 50
-    audio2 = np.pad(audio2,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
-    audio1 = np.pad(audio1,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
-    audio0 = np.pad(audio0,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audio2 = np.pad(audio2,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audio1 = np.pad(audio1,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audio0 = np.pad(audio0,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audio1 {audio1.shape}")
     print(" ")
     audio2Shaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
@@ -2171,7 +2869,6 @@ def generate_delay_embed(output_name,input_audio,channel ,fps, res_width, res_he
     
     beta = beta_p/180*np.pi
     alfa = alfa_p/180*np.pi
-    # Generate and save each frame as an image
     for i in range(n_frames):
         frameData = np.zeros((res_height, res_width), dtype=bool)
         beta += 2*np.pi/fps*beta_s
@@ -2179,14 +2876,8 @@ def generate_delay_embed(output_name,input_audio,channel ,fps, res_width, res_he
         x_coo, y_coo = rotate_and_project(audio0Interp[i],audio1Interp[i],audio2Interp[i],alfa,beta,res_width,res_height)
         for m in range(size_frame):
             frameData[int(y_coo[m]), int(x_coo[m])] = True
-        if thickness > 1:
-            for th in range(thickness - 1):
-                shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
-                shifted[-1, :] = False ## CLEARS BOTTOM ROW
-                #frameData = (frameData + shifted)
-                shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
-                shifted2[:, -1] = False ## CLEARS LAST COLUMN
-                frameData = frameData | shifted | shifted2 
+
+        frameData = apply_thickness(frameData, thickness)
         
         frameData = frameData.astype(np.uint8) * 255
         
@@ -2205,13 +2896,71 @@ def generate_delay_embed(output_name,input_audio,channel ,fps, res_width, res_he
     callback_function(i,n_frames, text_state = True, text_message = "Done, my dood!")
     return 0
 
-def rotate_and_project(a0, a1, a2, alpha, beta, W, H):
+def live_delay_embed(block, channel, res_width, res_height, delay1,delay2, beta_s, alfa_s,interpolation,thickness):
+    block = block.T
+    if block.shape[0] == 2:
+        if channel == "Both (Stereo)":
+            audio0 = -np.mean(block, axis = 0).astype(np.float16)
+            audio1 = np.concatenate((block[0,delay1:].astype(np.float16), block[0,:delay1].astype(np.float16))).astype(np.float16)
+            audio2 = np.concatenate((block[1,delay2:].astype(np.float16), block[1,:delay2].astype(np.float16))).astype(np.float16)
+        elif channel == "Both (Merge to mono)":
+            audio0 = -np.mean(block, axis = 0).astype(np.float16)
+            audio1 = np.concatenate((audio0[delay1:].astype(np.float16), audio0[:delay1].astype(np.float16))).astype(np.float16)
+            audio2 = np.concatenate((audio0[delay2:].astype(np.float16), audio0[:delay2].astype(np.float16))).astype(np.float16)
+        elif channel == "Left":
+            audio0 = -block[0,:].astype(np.float16)
+            audio1 = np.concatenate((audio0[delay1:].astype(np.float16), audio0[:delay1].astype(np.float16))).astype(np.float16)
+            audio2 = np.concatenate((audio0[delay2:].astype(np.float16), audio0[:delay2].astype(np.float16))).astype(np.float16)
+        elif channel == "Right":
+            audio0 = -block[1,:].astype(np.float16)
+            audio1 = np.concatenate((audio0[delay1:].astype(np.float16), audio0[:delay1].astype(np.float16))).astype(np.float16)
+            audio2 = np.concatenate((audio0[delay2:].astype(np.float16), audio0[:delay2].astype(np.float16))).astype(np.float16)
+    else:
+        audio0 = -block.astype(np.float16)
+        audio1 = np.concatenate((audio0[delay1:].astype(np.float16), audio0[:delay1].astype(np.float16))).astype(np.float16)
+        audio2 = np.concatenate((audio0[delay2:].astype(np.float16), audio0[:delay2].astype(np.float16))).astype(np.float16)
+
+    extra_margin = 50
+    audio2 = np.pad(audio2,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audio1 = np.pad(audio1,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+    audio0 = np.pad(audio0,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
+
+    #audio2Interp = np.zeros((1,len(audio2)*interpolation)).astype(np.float16)
+    #audio1Interp = np.zeros((1,len(audio1)*interpolation)).astype(np.float16)
+    #audio0Interp = np.zeros((1,len(audio0)*interpolation)).astype(np.float16)
+
+    if interpolation > 1:
+        audio2Interp = signal.resample(audio2, len(audio2)*interpolation).astype(np.float16)
+        audio1Interp = signal.resample(audio1, len(audio1)*interpolation).astype(np.float16)
+        audio0Interp = signal.resample(audio0, len(audio0)*interpolation).astype(np.float16)
+        #fs = fs*interpolation
+        #size_frame = size_frame*interpolation
+    else:
+        audio2Interp = audio2.astype(np.float16)
+        audio1Interp = audio1.astype(np.float16)
+        audio0Interp = audio0.astype(np.float16)
+
+    audio2Interp = audio2Interp[extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    audio1Interp = audio1Interp[extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+    audio0Interp = audio0Interp[extra_margin*interpolation:-extra_margin*interpolation] ## TO REMOVE THE 100*interpolation SAMPLES FOR RESAMPLING
+
+    frameData = np.zeros((res_height, res_width), dtype=bool)
+    t = time.time()
+    beta = 2*np.pi*beta_s*t
+    alfa = 2*np.pi*alfa_s*t
+    x_coo, y_coo = rotate_and_project(audio0Interp,audio1Interp,audio2Interp,alfa,beta,res_width,res_height)
+    for m in range(len(audio0Interp)):
+        frameData[int(y_coo[m]), int(x_coo[m])] = True
+    frameData = apply_thickness(frameData, thickness)
+    return frameData
+
+def rotate_and_project(a0, a1, a2, alfa, beta, W, H):
     P = np.vstack((a0, a1, a2)) 
 
     Ry = np.array([
-        [np.cos(alpha), 0, np.sin(alpha)],
+        [np.cos(alfa), 0, np.sin(alfa)],
         [0, 1, 0],
-        [-np.sin(alpha), 0, np.cos(alpha)]
+        [-np.sin(alfa), 0, np.cos(alfa)]
     ])
 
     Rx = np.array([
@@ -2234,29 +2983,53 @@ def rotate_and_project(a0, a1, a2, alpha, beta, W, H):
     return x_coo, y_coo
 
 def note_to_frequency(note):
-    if note.lstrip('-').replace('.', '', 1).isdigit():    
-        frequency = float(note)
+    note = note.strip().capitalize()  # c#4 -> C#4
+
+    if note.lstrip('-').replace('.', '', 1).isdigit():
+        return float(note)
+
+    note_to_midi = {'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
+                    'E': 4, 'Fb': 4, 'E#': 5, 'F': 5, 'F#': 6, 'Gb': 6,
+                    'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10,
+                    'B': 11, 'Cb': 11, 'B#': 0}
+
+    if len(note) < 2:  # MUY CORTITO
+        note_name, octave_str = "C", "4"
     else:
-        note_to_midi = {'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3,
-                        'E': 4, 'Fb': 4, 'E#': 5, 'F': 5, 'F#': 6, 'Gb': 6,
-                        'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10,
-                        'B': 11, 'Cb': 11, 'B#': 0,
-                        'c': 0, 'c#': 1, 'db': 1, 'd': 2, 'd#': 3, 'eb': 3,
-                        'e': 4, 'fb': 4, 'e#': 5, 'f': 5, 'f#': 6, 'gb': 6,
-                        'g': 7, 'g#': 8, 'ab': 8, 'a': 9, 'a#': 10, 'bb': 10,
-                        'b': 11, 'cb': 11, 'b#': 0}
-
         note_name, octave_str = note[:-1], note[-1]
-        midi_note = note_to_midi[note_name] + (int(octave_str) + 1) * 12
-        frequency = 440 * (2 ** ((midi_note - 69) / 12))
 
+    # Validate note name
+    if note_name not in note_to_midi:
+        note_name, octave_str = "C", "4"
+
+    # Validate octave
+    try:
+        octave = int(octave_str)
+    except ValueError:
+        octave = 4
+
+    midi_note = note_to_midi[note_name] + (octave + 1) * 12
+    frequency = 440 * (2 ** ((midi_note - 69) / 12))
+    #print(frequency)
     return frequency
+
     
 def note_to_polarSpeed(note):
     #A4 ---> 2764.55 (?????)
     frequency = note_to_frequency(note)*2
 
     return frequency
+
+def apply_thickness(frameData, thickness):
+    if thickness > 1:
+        for th in range(thickness - 1):
+            shifted = np.roll(frameData, shift=-1, axis=0) ##SHIFTS THE MATRIX UPWARDS
+            shifted[-1, :] = False ## CLEARS BOTTOM ROW
+            #frameData = (frameData + shifted)
+            shifted2 = np.roll(frameData, shift=-1, axis=1) ##SHIFTS THE MATRIX TO THE RIGHT
+            shifted2[:, -1] = False ## CLEARS LAST COLUMN
+            frameData = frameData | shifted | shifted2
+    return frameData
 
 
 #################################################
@@ -2318,13 +3091,13 @@ def create_combobox_dual(master, label_text, variable, divider, variable2, row, 
     combobox.config(width=6)
 
     label2 = tk.Label(master, text=divider)
-    label2.grid(row=row, column=1, padx=100, pady=5, sticky='w')
+    label2.grid(row=row, column=1, padx=90, pady=5, sticky='we')
 
     combobox2 = ttk.Combobox(master, textvariable=variable2, values=values2, validate="key", validatecommand=(master.register(validate_numeric), "%P"))
     combobox2.grid(row=row, column=1, padx=10, pady=5, sticky='e')
     combobox2.config(width=6)
     if tip:
-        tooltip = tk.Label(master, text=tip, font=("Helvetica", 10), fg='gray', anchor="w", justify="left")
+        tooltip = tk.Label(master, text=tip, font=("Helvetica", 10, "underline"), fg='gray', anchor="w", justify="left")
         tooltip.grid(row=row, column=2, padx=5, pady=5, sticky='w')
 
 def validate_numeric(value):
@@ -2395,6 +3168,370 @@ def create_file_output_row(parent, label_text, row, path_var=None):
 
     return entry
 
+def create_back_button(parent):
+    def go_back():
+        root.deiconify() # VUELVE A MOSTRAR LA VENTANA PRINCIPAL
+        for w in root.winfo_children():
+            if isinstance(w, tk.Toplevel):
+                w.destroy()
+
+    go_back_button = tk.Button(parent, text="↩", font=("TkFixedFont", 14), command=go_back)
+    go_back_button.grid(row=0, column=0, padx=0, pady=0, sticky="nw")
+
+def create_preview_toggle(master, row):
+    preview_shown = tk.BooleanVar(value=True)
+
+    def toggle_preview():
+        if preview_shown.get():
+            show_preview(master)
+        else:
+            if hasattr(master, "preview_window") and master.preview_window.winfo_exists():
+                master.preview_window.destroy()
+
+    preview_check = tk.Checkbutton(master, text="Live Preview\n (May be rough)", variable=preview_shown,command=toggle_preview)
+    preview_check.grid(row=row, column=0, padx=5, pady=5, sticky="e")
+
+    toggle_preview()
+
+def show_preview(self):
+    if hasattr(self, "preview_window") and self.preview_window.winfo_exists():
+        self.preview_window.lift()
+        return
+
+    self.preview_window = tk.Toplevel(self)
+    w = self.preview_window
+    w.title("Live Preview")
+    w.geometry("400x400")
+    w.resizable(True, True)
+
+    last_width, last_height = 400, 400
+
+    def on_configure(event):
+        nonlocal last_width, last_height
+        global vis_mode
+
+        if event.widget == w and vis_mode == "Recurrence":
+            current_width, current_height = event.width, event.height
+
+            if current_width != last_width or current_height != last_height:
+                last_width, last_height = current_width, current_height
+
+                if hasattr(w, '_pending_square'):
+                    w.after_cancel(w._pending_square)
+
+                w._pending_square = w.after(200, lambda: make_square_if_needed(w))
+
+    def make_square_if_needed(window):
+        if window.winfo_exists():
+            width = window.winfo_width()
+            height = window.winfo_height()
+            if width != height:
+                window.geometry(f"{min(width, height)}x{min(width, height)}")
+
+    w.bind('<Configure>', on_configure)
+
+    start_frame_loop(w)
+
+#################################################
+################### LIVE AUDIO ##################
+#################################################
+
+audio_queue = queue.Queue()
+
+BLOCK_SIZE = 48000 // 60 # 800 SAMPLES
+
+def _callback(indata, frames, time, status):
+    audio_queue.put(indata.copy())
+
+def audio_block_stream():
+    stream = sd.InputStream(
+        channels=2,
+        samplerate=48000,
+        blocksize=BLOCK_SIZE,
+        dtype='float32',
+        callback=_callback
+    )
+    stream.start()
+
+    while True:
+        block = audio_queue.get()
+        yield block
+
+def audio_thread():
+    global latest_block
+    for block in audio_block_stream():
+        latest_block = block
+
+#################################################
+################### FRAME SHOW ##################
+#################################################
+
+def start_frame_loop(window):
+    last_time = time.time()
+
+    label = tk.Label(window)  # create a label inside this new window
+    label.pack(fill="both", expand=True)
+
+    def update():
+        nonlocal last_time
+        now = time.time()
+        if now - last_time >= 1/60:  # ~60 FPS
+            h, w = label.winfo_height(), label.winfo_width()
+            if h < 5 or w < 5:
+                window.after(1, update)
+                return
+
+            block = latest_block
+            #print(latest_block[0, 0])
+            #print(block.shape)
+            if block is not None:
+                mean_abs = float(np.mean(block ** 2))
+                match vis_mode:
+                    case "Spectrum":
+                        try:
+                            xlow = SpectrumWin.xlow.get()
+                        except tk.TclError:
+                            xlow = 1
+                        try:
+                            xhigh = SpectrumWin.xhigh.get()
+                        except tk.TclError:
+                            xhigh = 20000
+                        try:
+                            limt_junk = SpectrumWin.limt_junk.get()
+                        except tk.TclError:
+                            limt_junk = False
+                        try:
+                            attenuation_steep = SpectrumWin.attenuation_steep.get()
+                        except tk.TclError:
+                            attenuation_steep = 0
+                        try:
+                            junk_threshold = SpectrumWin.junk_threshold.get()
+                        except tk.TclError:
+                            junk_threshold = 0
+                        try:
+                            threshold_steep = SpectrumWin.threshold_steep.get()
+                        except tk.TclError:
+                            threshold_steep = 0
+                        try:
+                            thickness = SpectrumWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_spectrum(block, SpectrumWin.channel.get(),  label.winfo_width(), label.winfo_height(), xlow, xhigh, limt_junk, attenuation_steep, junk_threshold, threshold_steep, SpectrumWin.style.get(), thickness)
+                    case "SpectrumdB":
+                        try:
+                            xlow = SpectrumdBWin.xlow.get()
+                        except tk.TclError:
+                            xlow = 1
+                        try:
+                            xhigh = SpectrumdBWin.xhigh.get()
+                        except tk.TclError:
+                            xhigh = 20000
+                        try:
+                            min_dB = SpectrumdBWin.min_dB.get()
+                        except tk.TclError:
+                            min_dB = 0
+                        try:
+                            thickness = SpectrumdBWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_spectrum_dB(block, SpectrumdBWin.channel.get(),  label.winfo_width(), label.winfo_height(), xlow, xhigh, min_dB, SpectrumdBWin.style.get(), thickness)
+                    case "Waveform":
+                        try:
+                            note = WaveformWin.note.get()
+                        except tk.TclError:
+                            note = "C4"
+
+                        # Also handle empty string
+                        if note == "":
+                            note = "C4"
+                        try:
+                            thickness = WaveformWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_waveform(block,WaveformWin.channel.get(),  label.winfo_width(), label.winfo_height(), WaveformWin.style.get(), thickness).astype(np.uint8) * 255
+                    case "LongWaveform":
+                        try:
+                            thickness = LongWaveformWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_waveform_long(block,LongWaveformWin.channel.get(),  label.winfo_width(), label.winfo_height(), thickness).astype(np.uint8) * 255
+                    case "Oscilloscope":
+                        try:
+                            interpolation = OscilloscopeWin.interpolation.get()
+                        except tk.TclError:
+                            interpolation = 1
+                        try:
+                            thickness = OscilloscopeWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_oscilloscope(block, label.winfo_width(), label.winfo_height(),interpolation, thickness).astype(np.uint8) * 255
+                    case "Polar":
+                        try:
+                            offset = PolarWin.offset.get()
+                        except tk.TclError:
+                            offset = 0
+                        try:
+                            note = PolarWin.note.get()
+                        except tk.TclError:
+                            note = "C4"
+
+                        # Also handle empty string
+                        if note == "":
+                            note = "C4"
+                        try:
+                            interpolation = PolarWin.interpolation.get()
+                        except tk.TclError:
+                            interpolation = 1
+                        try:
+                            thickness = PolarWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_polar(block,PolarWin.channel.get(),  label.winfo_width(), label.winfo_height(), offset, note,interpolation, thickness).astype(np.uint8) * 255
+                    case "PolarStereo":
+                        try:
+                            offset = PolarStereoWin.offset.get()
+                        except tk.TclError:
+                            offset = 0
+                        try:
+                            note = PolarStereoWin.note.get()
+                        except tk.TclError:
+                            note = "C4"
+
+                        # Also handle empty string
+                        if note == "":
+                            note = "C4"
+                        try:
+                            interpolation = PolarStereoWin.interpolation.get()
+                        except tk.TclError:
+                            interpolation = 1
+                        try:
+                            thickness = PolarStereoWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_polar_stereo(block,  label.winfo_width(), label.winfo_height(), offset, note,interpolation, thickness).astype(np.uint8) * 255
+                    case "SpecBalance":
+                        try:
+                            xlow = SpecBalanceWin.xlow.get()
+                        except tk.TclError:
+                            xlow = 1
+                        try:
+                            xhigh = SpecBalanceWin.xhigh.get()
+                        except tk.TclError:
+                            xhigh = 20000
+                        try:
+                            thickness = SpecBalanceWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_spec_balance(block,  label.winfo_width(), label.winfo_height(), xlow, xhigh, SpecBalanceWin.style.get(), thickness)
+                    case "Recurrence":
+                        try:
+                            threshold = RecurrenceWin.threshold.get()
+                        except tk.TclError:
+                            threshold = 0.1
+                        try:
+                            thickness = RecurrenceWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_recurrence(block,RecurrenceWin.channel.get(),  label.winfo_width(), label.winfo_height(), threshold, thickness).astype(np.uint8) * 255
+                    case "Poincare":
+                        try:
+                            delay = PoincareWin.delay.get()
+                        except tk.TclError:
+                            delay = 0
+                        try:
+                            interpolation = PoincareWin.interpolation.get()
+                        except tk.TclError:
+                            interpolation = 1
+                        try:
+                            thickness = PoincareWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_poincare(block,PoincareWin.channel.get(), label.winfo_width(), label.winfo_height(),delay,interpolation, thickness).astype(np.uint8) * 255
+                    case "DelayEmbed":
+                        try:
+                            delay1 = DelayEmbedWin.delay1.get()
+                        except tk.TclError:
+                            delay1 = 0
+                        try:
+                            delay2 = DelayEmbedWin.delay2.get()
+                        except tk.TclError:
+                            delay2 = 0
+                        try:
+                            beta_s = DelayEmbedWin.beta_s.get()
+                        except tk.TclError:
+                            beta_s = 0
+                        try:
+                            alfa_s = DelayEmbedWin.alfa_s.get()
+                        except tk.TclError:
+                            alfa_s = 0
+                        try:
+                            interpolation = DelayEmbedWin.interpolation.get()
+                        except tk.TclError:
+                            interpolation = 1
+                        try:
+                            thickness = DelayEmbedWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_delay_embed(block, DelayEmbedWin.channel.get(), label.winfo_width(), label.winfo_height(), delay1, delay2, beta_s, alfa_s, interpolation, thickness).astype(np.uint8) * 255
+                    case "Histogram":
+                        try:
+                            bars = HistogramWin.bars.get()
+                        except tk.TclError:
+                            bars = 3
+                        try:
+                            sensitivity = HistogramWin.sensitivity.get()
+                        except tk.TclError:
+                            sensitivity = 0
+                        try:
+                            thickness = HistogramWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_histogram(block, HistogramWin.channel.get(), label.winfo_width(), label.winfo_height(), bars, sensitivity, HistogramWin.curve_style.get(), HistogramWin.style.get(), thickness).astype(np.uint8) * 255
+                    case "Chladni":
+                        try:
+                            mode = ChladniWin.mode.get()
+                        except tk.TclError:
+                            mode = "Cosine"
+                        try:
+                            zoom = ChladniWin.zoom.get()
+                        except tk.TclError:
+                            zoom = 0
+                        try:
+                            smoothing = ChladniWin.smoothing.get()
+                        except tk.TclError:
+                            smoothing = 0
+                        try:
+                            threshold = ChladniWin.threshold.get()
+                        except tk.TclError:
+                            threshold = 0.1
+                        try:
+                            thickness = ChladniWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        frame = live_chladni(block, ChladniWin.channel.get(), label.winfo_width(), label.winfo_height(), mode, zoom, smoothing, threshold, thickness).astype(np.uint8) * 255
+                    case "Envelope":
+                        try:
+                            thickness = EnvelopeWin.thickness.get()
+                        except tk.TclError:
+                            thickness = 1
+                        try:
+                            smoothing = EnvelopeWin.smoothing.get()
+                        except tk.TclError:
+                            smoothing = 1
+                        frame = live_envelope(block,EnvelopeWin.channel.get(),  label.winfo_width(), label.winfo_height(),smoothing, EnvelopeWin.style.get(), thickness).astype(np.uint8) * 255
+                #last_time = time.time()
+                img = ImageTk.PhotoImage(Image.fromarray(frame))
+                label.config(image=img)
+                label.image = img
+                #now = time.time()
+                #print(now - last_time)
+
+            #print(now - last_time)
+            last_time = now
+
+        window.after(1, update)
+
+    update()
 
 #################################################
 #################### WINDOWS ####################
@@ -2410,8 +3547,9 @@ class SpectrumWindow:
     style_values = ["Just Points", "Curve", "Filled Spectrum"]
 
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Linear Spectrum Visualizer v0.19 by Aaron F. Bianchi")
+        self.master.title("Linear Spectrum Visualizer v0.24 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -2429,6 +3567,8 @@ class SpectrumWindow:
         self.style = tk.StringVar(value="Filled Spectrum")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
+
+        create_back_button(self.master)
 
         row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -2467,6 +3607,8 @@ class SpectrumWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -2541,6 +3683,7 @@ class SpectrumdBWindow:
     style_values = ["Just Points", "Curve", "Filled Spectrum"]
 
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
         self.master.title("Linear Spectrum Visualizer (dB) v0.12 by Aaron F. Bianchi")
 
@@ -2557,6 +3700,8 @@ class SpectrumdBWindow:
         self.style = tk.StringVar(value="Filled Spectrum")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
+
+        create_back_button(self.master)
 
         row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -2590,6 +3735,8 @@ class SpectrumdBWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -2662,8 +3809,9 @@ class SpecBalanceWindow:
     style_values = ["Just Points", "Curve", "Filled Spectrum"]
 
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Linear Spectral Balance Visualizer v0.03 by Aaron F. Bianchi")
+        self.master.title("Linear Spectral Balance Visualizer v0.08 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -2676,6 +3824,8 @@ class SpecBalanceWindow:
         self.style = tk.StringVar(value="Curve")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
+
+        create_back_button(self.master)
 
         row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -2702,10 +3852,11 @@ class SpecBalanceWindow:
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
 
-
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -2775,8 +3926,9 @@ class HistogramWindow:
     curve_style_values = ["Flat", "Linear", "FFT Resample"]
 
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Histogram Visualizer v0.05 by Aaron F. Bianchi")
+        self.master.title("Histogram Visualizer v0.10 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -2791,6 +3943,8 @@ class HistogramWindow:
         self.style = tk.StringVar(value="Filled Histogram")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
+
+        create_back_button(self.master)
 
         row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -2825,6 +3979,8 @@ class HistogramWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -2897,8 +4053,9 @@ class WaveformWindow:
     style_values = ["Just Points", "Curve", "Filled Waveform"]
 
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Short Waveform Visualizer v0.15 by Aaron F. Bianchi")
+        self.master.title("Short Waveform Visualizer v0.20 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -2911,6 +4068,8 @@ class WaveformWindow:
         self.style = tk.StringVar(value="Curve")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
+
+        create_back_button(self.master)
 
         row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -2940,6 +4099,8 @@ class WaveformWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def validate_numeric(self, value):
         try:
@@ -3030,8 +4191,9 @@ class LongWaveformWindow:
     style_values = ["Just Points", "Curve", "Filled Waveform"]
 
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Long Waveform Visualizer v0.05 by Aaron F. Bianchi")
+        self.master.title("Long Waveform Visualizer v0.10 by Aaron F. Bianchi")
 
 
         self.output_name = tk.StringVar(value="output.mp4")
@@ -3045,8 +4207,9 @@ class LongWaveformWindow:
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
-        row_num = 0
+        create_back_button(self.master)
 
+        row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3074,6 +4237,8 @@ class LongWaveformWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def validate_numeric(self, value):
         try:
@@ -3145,8 +4310,9 @@ class EnvelopeWindow:
     style_values = ["Just Points", "Curve", "Filled Envelope"]
 
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Envelope Visualizer v0.08 by Aaron F. Bianchi")
+        self.master.title("Envelope Visualizer v0.13 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3159,6 +4325,8 @@ class EnvelopeWindow:
         self.style = tk.StringVar(value="Just Points")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
+
+        create_back_button(self.master)
 
         row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -3173,7 +4341,7 @@ class EnvelopeWindow:
         row_num += 1
         create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="The smaller this is, the faster the envelope will move. Whole number.\nRecommended minimum is the width of the video.")
         row_num += 1
-        create_input_widgets_num(self.master, "Smoothing:", self.smoothing, row=row_num, tip="This makes the envelope smoother.")
+        create_input_widgets_num(self.master, "Smoothing:", self.smoothing, row=row_num, tip="This makes the envelope smoother. Positive integer.")
         row_num += 1
         create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
@@ -3188,6 +4356,8 @@ class EnvelopeWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def validate_numeric(self, value):
         try:
@@ -3263,10 +4433,11 @@ class OscilloscopeWindow:
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     interpolation_values = [1,2,4,8,16,32,64]
-    def __init__(self, master):
-        self.master = master
-        self.master.title("Oscilloscope Visualizer v0.06 by Aaron F. Bianchi")
 
+    def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
+        self.master = master
+        self.master.title("Oscilloscope Visualizer v0.11 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3277,8 +4448,9 @@ class OscilloscopeWindow:
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
-        row_num = 0
+        create_back_button(self.master)
 
+        row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3287,22 +4459,22 @@ class OscilloscopeWindow:
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_combobox(self.master, "Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
+        create_combobox(self.master, "*Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
         
-
         self.action_button = tk.Button(self.master, text="Render video", command=self.perform_action)
         self.action_button.grid(row=row_num, column=1, pady=10)
         #row_num += 1
         
-
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -3362,10 +4534,11 @@ class PolarWindow:
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     interpolation_values = [1,2,4,8,16,32,64]
-    def __init__(self, master):
-        self.master = master
-        self.master.title("Polar Visualizer v0.09 by Aaron F. Bianchi")
 
+    def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
+        self.master = master
+        self.master.title("Polar Visualizer v0.14 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3379,8 +4552,9 @@ class PolarWindow:
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
-        row_num = 0
+        create_back_button(self.master)
 
+        row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3391,7 +4565,7 @@ class PolarWindow:
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_input_widgets(self.master, "Offset:", self.offset, row=row_num, tip="Set an offset. I don't know how to explain it. Just try and see.")
+        create_input_widgets_num(self.master, "Offset:", self.offset, row=row_num, tip="Set an offset. I don't know how to explain it. Just try and see.")
         row_num += 1
         create_input_widgets(self.master, "Tuning:", self.note, row=row_num, tip="Set a note to tune the polar oscilloscope to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
         row_num += 1
@@ -3409,6 +4583,8 @@ class PolarWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -3488,9 +4664,11 @@ class PolarStereoWindow:
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     interpolation_values = [1,2,4,8,16,32,64]
+
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Stereo Polar Visualizer v0.10 by Aaron F. Bianchi")
+        self.master.title("Stereo Polar Visualizer v0.15 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3503,8 +4681,9 @@ class PolarStereoWindow:
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
-        row_num = 0
+        create_back_button(self.master)
 
+        row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3531,6 +4710,8 @@ class PolarStereoWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -3609,9 +4790,11 @@ class RecurrenceWindow:
     fps_values = [23.976,24,25,29.97,30,50,59.94,60,120]
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
+
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Recurrence Plot Visualizer v0.10 by Aaron F. Bianchi")
+        self.master.title("Recurrence Plot Visualizer v0.15 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3624,8 +4807,9 @@ class RecurrenceWindow:
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
-        row_num = 0
+        create_back_button(self.master)
 
+        row_num = 0
         #warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
         #warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
         #row_num += 1
@@ -3655,6 +4839,8 @@ class RecurrenceWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -3731,9 +4917,11 @@ class ChladniWindow:
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     mode_values = ["Sine", "Cosine", "Tangent", "Cotangent", "Secant", "Cosecant"]
+
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("False Chladni Plate Visualizer v0.08 by Aaron F. Bianchi")
+        self.master.title("False Chladni Plate Visualizer v0.13 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3747,6 +4935,8 @@ class ChladniWindow:
         self.threshold = tk.DoubleVar(value=0.5)
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
+
+        create_back_button(self.master)
 
         row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -3779,6 +4969,8 @@ class ChladniWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -3848,9 +5040,11 @@ class PoincareWindow:
     width_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     height_values = [240,360,480,540,640,720,768,960,1080,1440,1600,1920,2160]
     interpolation_values = [1,2,4,8,16,32,64]
+
     def __init__(self, master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Poincaré Plot Visualizer v0.01 by Aaron F. Bianchi")
+        self.master.title("Poincaré Plot Visualizer v0.06 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3863,8 +5057,9 @@ class PoincareWindow:
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
-        row_num = 0
+        create_back_button(self.master)
 
+        row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3891,6 +5086,8 @@ class PoincareWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -3958,9 +5155,12 @@ class DelayEmbedWindow:
     angle_values = [-90,-45,-30,-15,0,15,30,45,90]
     rot_speed_values = [-1,-0.5,-0.25,-0.125,0,0.125,0.25,0.5,1]
     interpolation_values = [1,2,4,8,16,32,64]
-    def __init__(self, master):
+
+    def __init__(self,master):
+        root.withdraw()  # ESCONDE LA VENTANA PRINCIPAL
         self.master = master
-        self.master.title("Delay Embed Visualizer v0.05 by Aaron F. Bianchi")
+        #self.master.geometry("1000x550")
+        self.master.title("Delay Embed Visualizer v0.10 by Aaron F. Bianchi")
 
         self.output_name = tk.StringVar(value="output.mp4")
         self.input_audio = tk.StringVar(value="")
@@ -3978,8 +5178,9 @@ class DelayEmbedWindow:
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
-        row_num = 0
+        create_back_button(self.master)
 
+        row_num = 0
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -4010,6 +5211,8 @@ class DelayEmbedWindow:
         self.loading_label = tk.Label(self.master, text="Loading...", font=("Helvetica", 10), fg="blue", anchor="w", justify="left")
         self.loading_label.grid(row=row_num, column=2, padx=10, pady=5, sticky="w")
         self.loading_label.grid_remove()
+
+        create_preview_toggle(self.master, row=row_num)
 
     def perform_action(self):
         try:
@@ -4072,6 +5275,7 @@ class DelayEmbedWindow:
         else:
             self.loading_label.config(text=f"Progress: Frame {progress} of {total}")
         self.master.update()  # Update the GUI
+
         
 class HelpWindow:
     def __init__(self, master):
@@ -4092,6 +5296,22 @@ class HelpWindow:
 
     def perform_action(self):
         webbrowser.open("https://aaron-f-bianchi.itch.io/lsao/purchase")
+
+def handle_child_close(child, root, exit_if_no_root=True):
+    """
+    Attach a WM_DELETE_WINDOW handler to a child window.
+
+    If exit_if_no_root is True, closing the child will also destroy the root.
+    Otherwise, it will deiconify the root if it's hidden.
+    """
+    def on_close():
+        child.destroy()
+        if exit_if_no_root or not root.winfo_viewable():
+            root.destroy()  # exit the program
+        else:
+            root.deiconify()  # show hidden root
+
+    child.protocol("WM_DELETE_WINDOW", on_close)
       
 #################################################
 ################## MAIN WINDOW ##################
@@ -4101,60 +5321,130 @@ def option_logo():
     webbrowser.open("https://aaron-f-bianchi.itch.io/lsao/purchase")
 
 def option1():
+    global SpectrumWin
     spectrum_window = tk.Toplevel(root)
-    SpectrumWindow(spectrum_window)
+    spectrum_window.resizable(False, False)
+    SpectrumWin = SpectrumWindow(spectrum_window)
+    handle_child_close(spectrum_window, root)
+    global vis_mode
+    vis_mode = "Spectrum"
 
 def option5():
+    global SpectrumdBWin
     spectrumdB_window = tk.Toplevel(root)
-    SpectrumdBWindow(spectrumdB_window)
+    spectrumdB_window.resizable(False, False)
+    SpectrumdBWin = SpectrumdBWindow(spectrumdB_window)
+    handle_child_close(spectrumdB_window, root)
+    global vis_mode
+    vis_mode = "SpectrumdB"
 
 def option2():
+    global WaveformWin
     waveform_window = tk.Toplevel(root)
-    WaveformWindow(waveform_window)
+    waveform_window.resizable(False, False)
+    WaveformWin = WaveformWindow(waveform_window)
+    handle_child_close(waveform_window, root)
+    global vis_mode
+    vis_mode = "Waveform"
     
 def option3():
+    global LongWaveformWin
     long_waveform_window = tk.Toplevel(root)
-    LongWaveformWindow(long_waveform_window)
+    long_waveform_window.resizable(False, False)
+    LongWaveformWin = LongWaveformWindow(long_waveform_window)
+    handle_child_close(long_waveform_window, root)
+    global vis_mode
+    vis_mode = "LongWaveform"
     
 def option4():
+    global OscilloscopeWin
     oscilloscope_window = tk.Toplevel(root)
-    OscilloscopeWindow(oscilloscope_window)
+    oscilloscope_window.resizable(False, False)
+    OscilloscopeWin = OscilloscopeWindow(oscilloscope_window)
+    handle_child_close(oscilloscope_window, root)
+    global vis_mode
+    vis_mode = "Oscilloscope"
     
 def option6():
+    global PolarWin
     polar_window = tk.Toplevel(root)
-    PolarWindow(polar_window)
+    polar_window.resizable(False, False)
+    PolarWin = PolarWindow(polar_window)
+    handle_child_close(polar_window, root)
+    global vis_mode
+    vis_mode = "Polar"
     
 def option7():
+    global PolarStereoWin
     polar_stereo_window = tk.Toplevel(root)
-    PolarStereoWindow(polar_stereo_window)
+    polar_stereo_window.resizable(False, False)
+    PolarStereoWin = PolarStereoWindow(polar_stereo_window)
+    handle_child_close(polar_stereo_window, root)
+    global vis_mode
+    vis_mode = "PolarStereo"
     
 def option8():
+    global SpecBalanceWin
     spec_balance_window = tk.Toplevel(root)
-    SpecBalanceWindow(spec_balance_window) 
+    spec_balance_window.resizable(False, False)
+    SpecBalanceWin = SpecBalanceWindow(spec_balance_window)
+    handle_child_close(spec_balance_window, root)
+    global vis_mode
+    vis_mode = "SpecBalance"
        
 def option9():
+    global vis_mode
+    vis_mode = "Recurrence"
+    global RecurrenceWin
     recurrence_window = tk.Toplevel(root)
-    RecurrenceWindow(recurrence_window)
+    recurrence_window.resizable(False, False)
+    RecurrenceWin = RecurrenceWindow(recurrence_window)
+    handle_child_close(recurrence_window, root)
     
 def option10():
+    global PoincareWin
     poincare_window = tk.Toplevel(root)
-    PoincareWindow(poincare_window)
+    poincare_window.resizable(False, False)
+    PoincareWin = PoincareWindow(poincare_window)
+    handle_child_close(poincare_window, root)
+    global vis_mode
+    vis_mode = "Poincare"
         
 def option11():
+    global DelayEmbedWin
     delay_embed_window = tk.Toplevel(root)
-    DelayEmbedWindow(delay_embed_window)
+    delay_embed_window.resizable(False, False)
+    DelayEmbedWin = DelayEmbedWindow(delay_embed_window)
+    handle_child_close(delay_embed_window, root)
+    global vis_mode
+    vis_mode = "DelayEmbed"
 
 def option12():
+    global HistogramWin
     histogram_window = tk.Toplevel(root)
-    HistogramWindow(histogram_window)
+    histogram_window.resizable(False, False)
+    HistogramWin = HistogramWindow(histogram_window)
+    handle_child_close(histogram_window, root)
+    global vis_mode
+    vis_mode = "Histogram"
 
 def option13():
+    global ChladniWin
     chladni_window = tk.Toplevel(root)
-    ChladniWindow(chladni_window)
+    chladni_window.resizable(False, False)
+    ChladniWin = ChladniWindow(chladni_window)
+    handle_child_close(chladni_window, root)
+    global vis_mode
+    vis_mode = "Chladni"
 
 def option14():
+    global EnvelopeWin
     envelope_window = tk.Toplevel(root)
-    EnvelopeWindow(envelope_window)
+    envelope_window.resizable(False, False)
+    EnvelopeWin = EnvelopeWindow(envelope_window)
+    handle_child_close(envelope_window, root)
+    global vis_mode
+    vis_mode = "Envelope"
 
 #def optionhelp():
 #    help_window = tk.Toplevel(root)
@@ -4187,8 +5477,18 @@ FFMPEG = ffmpeg_ubicacion()
 FFPROBE = ffprobe_ubicacion()
 
 root = tk.Tk()
-root.title("LSaO Visualizer v1.07")
-#root.geometry("700x600")
+root.title("LSaO Visualizer v2.00")
+root.resizable(False, False)
+
+icon = tk.PhotoImage(file="resources/lsao_icon.png")
+root.iconphoto(True, icon)
+
+stream = audio_block_stream()
+latest_block = None
+# RECEIVING THE AUDIO
+threading.Thread(target=audio_thread, daemon=True).start()
+
+vis_mode = ""
 
 def load_gif(path):
     gif = Image.open(path)
