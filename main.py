@@ -3571,11 +3571,14 @@ class SpectrumWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -3583,19 +3586,19 @@ class SpectrumWindow:
         row_num += 1
         create_input_widgets_num(self.master, "Time Smoothing:", self.t_smoothing, row=row_num, tip="Gives you a curve that doesn't move that violently. Whole number.")
         row_num += 1
-        create_combobox_dual(self.master, "Frequency Limits:", self.xlow, "-", self.xhigh, row=row_num, values=self.xlow_values, values2=self.xhigh_values, tip="Lower and higher frequency limits in Hz, respectively.\nFrom 1Hz to half the sample rate of the audio.")
+        create_combobox_dual(self.master, "*Frequency Limits:", self.xlow, "-", self.xhigh, row=row_num, values=self.xlow_values, values2=self.xhigh_values, tip="Lower and higher frequency limits in Hz, respectively.\nFrom 1Hz to half the sample rate of the audio.")
         row_num += 1
-        create_input_widgets_num(self.master, "Mid/High Boost:", self.attenuation_steep, row=row_num, tip="This will boost everything but the low end. You can enter a negative\nvalue for some crazy results, but going below -10 has no purpose.")
+        create_input_widgets_num(self.master, "*Mid/High Boost:", self.attenuation_steep, row=row_num, tip="This will boost everything but the low end. You can enter a negative\nvalue for some crazy results, but going below -10 has no purpose.")
         row_num += 1
-        create_checkbutton(self.master, "Expander", self.limt_junk, row=row_num, tip="This will reduce the intensity of small amplitudes.")
+        create_checkbutton(self.master, "*Expander", self.limt_junk, row=row_num, tip="This will reduce the intensity of small amplitudes.")
         row_num += 1
-        create_input_widgets_num(self.master, "Expand Threshold:", self.junk_threshold, row=row_num, tip="The bigger this value, the bigger amplitudes have to be to not\nbe reduced. Doesn't have to be a whole number.")
+        create_input_widgets_num(self.master, "*Expand Threshold:", self.junk_threshold, row=row_num, tip="The bigger this value, the bigger amplitudes have to be to not\nbe reduced. Doesn't have to be a whole number.")
         row_num += 1
-        create_input_widgets_num(self.master, "Expand Steepness:", self.threshold_steep, row=row_num, tip="This will make the transition between amplitudes being reduced\nor boosted more abrupt. Doesn't have to be a whole number.")
+        create_input_widgets_num(self.master, "*Expand Steepness:", self.threshold_steep, row=row_num, tip="This will make the transition between amplitudes being reduced\nor boosted more abrupt. Doesn't have to be a whole number.")
         row_num += 1
-        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -3704,11 +3707,14 @@ class SpectrumdBWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -3716,13 +3722,13 @@ class SpectrumdBWindow:
         row_num += 1
         create_input_widgets_num(self.master, "Time Smoothing:", self.t_smoothing, row=row_num, tip="Gives you a curve that doesn't move that violently. Whole number.")
         row_num += 1
-        create_combobox_dual(self.master, "Frequency Limits:", self.xlow, "-", self.xhigh, row=row_num, values=self.xlow_values, values2=self.xhigh_values, tip="Lower and higher frequency limits in Hz, respectively.\nFrom 1Hz to half the sample rate of the audio.")
+        create_combobox_dual(self.master, "*Frequency Limits:", self.xlow, "-", self.xhigh, row=row_num, values=self.xlow_values, values2=self.xhigh_values, tip="Lower and higher frequency limits in Hz, respectively.\nFrom 1Hz to half the sample rate of the audio.")
         row_num += 1
-        create_input_widgets_num(self.master, "Spectrum Floor:", self.min_dB, row=row_num, tip="Minimum value to display in dB. Less than 0dB")
+        create_input_widgets_num(self.master, "*Spectrum Floor:", self.min_dB, row=row_num, tip="Minimum value to display in dB. Less than 0dB")
         row_num += 1
-        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -3828,6 +3834,9 @@ class SpecBalanceWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -3838,11 +3847,11 @@ class SpecBalanceWindow:
         row_num += 1
         create_input_widgets_num(self.master, "Time Smoothing:", self.t_smoothing, row=row_num, tip="Gives you a curve that doesn't move that violently. Whole number.")
         row_num += 1
-        create_combobox_dual(self.master, "Frequency Limits:", self.xlow, "-", self.xhigh, row=row_num, values=self.xlow_values, values2=self.xhigh_values, tip="Lower and higher frequency limits in Hz, respectively.\nFrom 1Hz to half the sample rate of the audio.")
+        create_combobox_dual(self.master, "*Frequency Limits:", self.xlow, "-", self.xhigh, row=row_num, values=self.xlow_values, values2=self.xhigh_values, tip="Lower and higher frequency limits in Hz, respectively.\nFrom 1Hz to half the sample rate of the audio.")
         row_num += 1
-        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -3947,27 +3956,30 @@ class HistogramWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip="", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width, "x", self.res_height, row=row_num, values=self.width_values, values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_input_widgets_num(self.master, "Window Size:", self.size_frame, row=row_num, tip="Number of samples of the histogram. Whole number.\nIf it's too low, it will be calculated with the FPS and sample rate.")
+        create_input_widgets_num(self.master, "Smoothing:", self.size_frame, row=row_num, tip="Number of samples of the histogram. Whole number.\nIf it's too low, it will be calculated with the FPS and sample rate.")
         row_num += 1
-        create_input_widgets_num(self.master, "Bars:", self.bars, row=row_num, tip="Number of bars of the histogram. Whole number.")
+        create_input_widgets_num(self.master, "*Bars:", self.bars, row=row_num, tip="Number of bars of the histogram. Whole number.")
         row_num += 1
-        create_input_widgets_num(self.master, "Sensitivity:", self.sensitivity, row=row_num, tip="Makes smaller values more visible. Non-negative value.")
+        create_input_widgets_num(self.master, "*Sensitivity:", self.sensitivity, row=row_num, tip="Makes smaller values more visible. Non-negative value.")
         row_num += 1
-        create_combobox(self.master, "Curve Style:", self.curve_style, row=row_num, values=self.curve_style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Curve Style:", self.curve_style, row=row_num, values=self.curve_style_values, tip=" ", readonly=True)
         row_num += 1
-        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up. Whole number.\nWill make the render slower the higher you go")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -4072,11 +4084,14 @@ class WaveformWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps_2, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -4086,9 +4101,9 @@ class WaveformWindow:
         row_num += 1
         create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="The smaller this is, the faster the waveform will move. Whole number.\nRecommended minimum is the width of the video.\nFor higher than ~20000 I recommend using the long waveform.")
         row_num += 1
-        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -4210,11 +4225,14 @@ class LongWaveformWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -4222,9 +4240,9 @@ class LongWaveformWindow:
         row_num += 1
         create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="The smaller this is, the faster the waveform will move. Whole number.")
         row_num += 1
-        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -4329,11 +4347,14 @@ class EnvelopeWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps_2, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -4341,11 +4362,11 @@ class EnvelopeWindow:
         row_num += 1
         create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="The smaller this is, the faster the envelope will move. Whole number.\nRecommended minimum is the width of the video.")
         row_num += 1
-        create_input_widgets_num(self.master, "Smoothing:", self.smoothing, row=row_num, tip="This makes the envelope smoother. Positive integer.")
+        create_input_widgets_num(self.master, "*Smoothing:", self.smoothing, row=row_num, tip="This makes the envelope smoother. Positive integer.")
         row_num += 1
-        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -4451,6 +4472,9 @@ class OscilloscopeWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -4555,23 +4579,26 @@ class PolarWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_input_widgets_num(self.master, "Offset:", self.offset, row=row_num, tip="Set an offset. I don't know how to explain it. Just try and see.")
+        create_input_widgets_num(self.master, "*Offset:", self.offset, row=row_num, tip="Set an offset. I don't know how to explain it. Just try and see.")
         row_num += 1
-        create_input_widgets(self.master, "Tuning:", self.note, row=row_num, tip="Set a note to tune the polar oscilloscope to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
+        create_input_widgets(self.master, "*Tuning:", self.note, row=row_num, tip="Set a note to tune the polar oscilloscope to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
         row_num += 1
-        create_combobox(self.master, "Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
+        create_combobox(self.master, "*Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -4684,6 +4711,9 @@ class PolarStereoWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
@@ -4692,13 +4722,13 @@ class PolarStereoWindow:
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_input_widgets(self.master, "Offset:", self.offset, row=row_num, tip="Set an offset. I don't know how to explain it. Just try and see.")
+        create_input_widgets(self.master, "*Offset:", self.offset, row=row_num, tip="Set an offset. I don't know how to explain it. Just try and see.")
         row_num += 1
-        create_input_widgets(self.master, "Tuning:", self.note, row=row_num, tip="Set a note to tune the polar oscilloscope to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
+        create_input_widgets(self.master, "*Tuning:", self.note, row=row_num, tip="Set a note to tune the polar oscilloscope to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
         row_num += 1
-        create_combobox(self.master, "Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
+        create_combobox(self.master, "*Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -4810,6 +4840,9 @@ class RecurrenceWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         #warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
         #warning_label.grid(row=row_num, column=0, columnspan=3, padx=(5, 5), pady=(5, 0), sticky="we")
         #row_num += 1
@@ -4817,7 +4850,7 @@ class RecurrenceWindow:
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
@@ -4825,9 +4858,9 @@ class RecurrenceWindow:
         row_num += 1
         create_input_widgets(self.master, "Tuning:", self.note, row=row_num, tip="Set a note to tune the recurrence plot to.\nYou can enter the name of a note or its fundamental frequency in Hz.")
         row_num += 1
-        create_input_widgets(self.master, "Threshold:", self.threshold, row=row_num, tip="Higher values will increase the amount of white.")
+        create_input_widgets(self.master, "*Threshold:", self.threshold, row=row_num, tip="Higher values will increase the amount of white.")
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the whole thing one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the whole thing one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -4939,25 +4972,28 @@ class ChladniWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_combobox(self.master, "Mode:", self.mode, row=row_num, values=self.mode_values, tip="Try these for different shapes in your video", readonly=True)
+        create_combobox(self.master, "*Mode:", self.mode, row=row_num, values=self.mode_values, tip="Try these for different shapes in your video", readonly=True)
         row_num += 1
-        create_input_widgets(self.master, "Zoom:", self.zoom, row=row_num, tip="Zoom in the Chladni plate.")
+        create_input_widgets(self.master, "*Zoom:", self.zoom, row=row_num, tip="Zoom in the Chladni plate.")
         row_num += 1
-        create_input_widgets(self.master, "Smoothing:", self.smoothing, row=row_num, tip="The higher this value, the smoother the visualization. From 0 to 1.")
+        create_input_widgets(self.master, "*Smoothing:", self.smoothing, row=row_num, tip="The higher this value, the smoother the visualization. From 0 to 1.")
         row_num += 1
-        create_input_widgets(self.master, "Threshold:", self.threshold, row=row_num, tip="Higher values will increase the amount of white.")
+        create_input_widgets(self.master, "*Threshold:", self.threshold, row=row_num, tip="Higher values will increase the amount of white.")
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the whole thing one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the whole thing one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -5060,21 +5096,24 @@ class PoincareWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_input_widgets_num(self.master, "Delay:", self.delay, row=row_num, tip="This can modify the shape of the scribble in cool ways.\nI don't know how to explain it. Just try and see.")
+        create_input_widgets_num(self.master, "*Delay:", self.delay, row=row_num, tip="This can modify the shape of the scribble in cool ways.\nI don't know how to explain it. Just try and see.")
         row_num += 1
-        create_combobox(self.master, "Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
+        create_combobox(self.master, "*Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number.")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number.")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -5181,25 +5220,28 @@ class DelayEmbedWindow:
         create_back_button(self.master)
 
         row_num = 0
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
+        row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
         row_num += 1
         create_file_output_row(self.master, "Output video:", row=row_num, path_var=self.output_name)
         row_num += 1
-        create_combobox(self.master, "Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
+        create_combobox(self.master, "*Channel:", self.channel, row=row_num, values=self.channel_values, tip=" ", readonly=True)
         row_num += 1
         create_combobox(self.master, "Frame Rate:", self.fps, row=row_num, values=self.fps_values, tip="Frames per second")
         row_num += 1
         create_combobox_dual(self.master, "Resolution:", self.res_width,"x", self.res_height, row=row_num, values=self.width_values,values2=self.height_values, tip="Width x Height. Even numbers.")
         row_num += 1
-        create_combobox_dual(self.master, "Delays:", self.delay1,"&", self.delay2, row=row_num, values=self.delay_values,values2=self.delay_values, tip="This can modify the shape of the scribble in cool ways.")
+        create_combobox_dual(self.master, "*Delays:", self.delay1,"&", self.delay2, row=row_num, values=self.delay_values,values2=self.delay_values, tip="This can modify the shape of the scribble in cool ways.")
         row_num += 1
         create_combobox_dual(self.master, "Rotation:", self.alfa_p,"&", self.beta_p, row=row_num, values=self.angle_values,values2=self.angle_values, tip="Initial angular positions (Pitch and Jaw) of the scribble in degrees.")
         row_num += 1
-        create_combobox_dual(self.master, "Rotation Speed:", self.alfa_s,"&", self.beta_s, row=row_num, values=self.rot_speed_values,values2=self.rot_speed_values, tip="Rotation speed of the scribble in revolutions per second")
+        create_combobox_dual(self.master, "*Rotation Speed:", self.alfa_s,"&", self.beta_s, row=row_num, values=self.rot_speed_values,values2=self.rot_speed_values, tip="Rotation speed of the scribble in revolutions per second")
         row_num += 1
-        create_combobox(self.master, "Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
+        create_combobox(self.master, "*Oversampling:", self.interpolation, row=row_num, values=self.interpolation_values, tip="Will draw more points so it looks more like a continuous line.\nUses a ton of memory for high values on long songs. Whole number.")
         row_num += 1
-        create_input_widgets_num(self.master, "Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number.")
+        create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number.")
         row_num += 1
         create_input_widgets_num(self.master, "Video Compression:", self.compression, row=row_num, tip="Constant rate factor compression. Doesn't have to be a whole number.\n- 0: No compression (~2x as fast).\n- 35: Mild compression.")
         row_num += 1
@@ -5530,7 +5572,7 @@ elif os.name == 'posix':
     button_width = 90
     button_height = 104
     print("Running on Linux")
-    initial_text = initial_text + "\n- You have to install FFmpeg if you haven't already."
+    initial_text = initial_text + "\n- You have to install FFmpeg and libportaudio2\n  if not already installed."
 initial_label = tk.Label(root, text=initial_text, font=("Helvetica", 10), anchor='w', justify='left')
 initial_label.grid(row=row_num, column=0, columnspan=4, padx=10, pady=10, sticky="w")
 
