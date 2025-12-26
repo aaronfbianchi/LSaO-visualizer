@@ -24,7 +24,11 @@ import sys
 import time
 import threading
 import queue
-import sounddevice as sd
+
+if os.name == 'posix':
+    import sounddevice as sd
+elif os.name == 'nt':
+    import soundcard as sc
 
 ######################################################################
 ## LINEAR SPRECTRUM AND OSCILLOSCOPE VISUALIZER by Aarón F. Bianchi ##
@@ -1553,6 +1557,7 @@ def live_envelope(block, channel, res_width, res_height,smoothing, style, thickn
     frameData = np.zeros((res_height, res_width), dtype=bool)
 
     oldEnvLive = np.roll(oldEnvLive, -1)
+    #print(oldEnvLive.shape)
     oldEnvLive[-1] = np.max(np.abs(audio))
     oldEnvLive[-1] = oldEnvLive[-1]/(1+smoothing/1000) + oldEnvLive[-2]*(1-1/(1+smoothing/1000))
 
@@ -1610,25 +1615,20 @@ def generate_oscilloscope(output_name,input_audio,fps, res_width, res_height,int
     audioL = np.pad(audioL,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     audioR = np.pad(audioR,(extra_margin,extra_margin)) ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
-    print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audioRShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     print(f"shape audioLShaped {audioLShaped.shape}")
-    print(" ")
     for i in range(n_frames):
         audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame + extra_margin*2]
     print(f"shape audioLShaped {audioLShaped.shape}")
     print(f"shape audioRShaped {audioRShaped.shape}")
-    print(" ")
     audioLInterp = np.zeros((audioLShaped.shape[0],audioLShaped.shape[1]*interpolation)).astype(np.float16)
     audioRInterp = np.zeros((audioRShaped.shape[0],audioRShaped.shape[1]*interpolation)).astype(np.float16)
     print(f"audioLInterp {audioLInterp.shape}")
     print(f"audioRInterp {audioRInterp.shape}")
     if interpolation > 1:
-        print(" ")
         callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
-        print(" ")
         audioLInterp = signal.resample(audioLShaped, audioLShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audioRInterp = signal.resample(audioRShaped, audioRShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         print(f"audioLInterp {audioLInterp.shape}")
@@ -1784,25 +1784,20 @@ def generate_polar(output_name,input_audio,channel,fps, res_width, res_height,of
     audioL = np.pad(audioL,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     audioR = np.pad(audioR,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
-    print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audioRShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     print(f"shape audioLShaped {audioLShaped.shape}")
-    print(" ")
     for i in range(n_frames):
         audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame + extra_margin*2]
     print(f"shape audioLShaped {audioLShaped.shape}")
     print(f"shape audioRShaped {audioRShaped.shape}")
-    print(" ")
     audioLInterp = np.zeros((audioLShaped.shape[0],audioLShaped.shape[1]*interpolation)).astype(np.float16)
     audioRInterp = np.zeros((audioRShaped.shape[0],audioRShaped.shape[1]*interpolation)).astype(np.float16)
     print(f"audioLInterp {audioLInterp.shape}")
     print(f"audioRInterp {audioRInterp.shape}")
     if interpolation > 1:
-        print(" ")
         callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
-        print(" ")
         audioLInterp = signal.resample(audioLShaped, audioLShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audioRInterp = signal.resample(audioRShaped, audioRShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         print(f"audioLInterp {audioLInterp.shape}")
@@ -1950,13 +1945,11 @@ def generate_polar_stereo(output_name,input_audio,fps, res_width, res_height,off
     
     audioL = (audio0*np.sin(theta)).astype(np.float16) ## 32768*0.95
     audioR = (audio1*np.cos(theta)).astype(np.float16) ## 32768*0.95
-    print(" ")
     
     ########### ROTATION 45 DEG ######################
     sqrt2_over_2 = np.sqrt(2) / 2
     audioLr = (audioR*sqrt2_over_2 + audioL*sqrt2_over_2).astype(np.float16)
     audioRr = (-audioR*sqrt2_over_2 + audioL*sqrt2_over_2).astype(np.float16)
-    print(" ")
     audioL = audioLr
     audioR = audioRr
     ##################################################
@@ -1977,25 +1970,20 @@ def generate_polar_stereo(output_name,input_audio,fps, res_width, res_height,off
     audioL = np.pad(audioL,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     audioR = np.pad(audioR,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
-    print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audioRShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     print(f"shape audioLShaped {audioLShaped.shape}")
-    print(" ")
     for i in range(n_frames):
         audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame + extra_margin*2]
     print(f"shape audioLShaped {audioLShaped.shape}")
     print(f"shape audioRShaped {audioRShaped.shape}")
-    print(" ")
     audioLInterp = np.zeros((audioLShaped.shape[0],audioLShaped.shape[1]*interpolation)).astype(np.float16)
     audioRInterp = np.zeros((audioRShaped.shape[0],audioRShaped.shape[1]*interpolation)).astype(np.float16)
     print(f"audioLInterp {audioLInterp.shape}")
     print(f"audioRInterp {audioRInterp.shape}")
     if interpolation > 1:
-        print(" ")
         callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
-        print(" ")
         audioLInterp = signal.resample(audioLShaped, audioLShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audioRInterp = signal.resample(audioRShaped, audioRShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         print(f"audioLInterp {audioLInterp.shape}")
@@ -2086,7 +2074,6 @@ def live_polar_stereo(block,res_width, res_height, offset, note,interpolation,th
     sqrt2_over_2 = np.sqrt(2) / 2
     audioLr = (audioR*sqrt2_over_2 + audioL*sqrt2_over_2).astype(np.float16)
     audioRr = (-audioR*sqrt2_over_2 + audioL*sqrt2_over_2).astype(np.float16)
-    print(" ")
     audioL = audioLr
     audioR = audioRr
     ##################################################
@@ -2628,25 +2615,20 @@ def generate_poincare(output_name,input_audio,channel ,fps, res_width, res_heigh
     audioL = np.pad(audioL,(extra_margin,extra_margin),'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     audioR = np.pad(audioR,(extra_margin,extra_margin),'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audioL {audioL.shape}")
-    print(" ")
     audioLShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audioRShaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     print(f"shape audioLShaped {audioLShaped.shape}")
-    print(" ")
     for i in range(n_frames):
         audioLShaped[i,:] = audioL[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audioRShaped[i,:] = audioR[i*size_frame : (i+1)*size_frame + extra_margin*2]
     print(f"shape audioLShaped {audioLShaped.shape}")
     print(f"shape audioRShaped {audioRShaped.shape}")
-    print(" ")
     audioLInterp = np.zeros((audioLShaped.shape[0],audioLShaped.shape[1]*interpolation)).astype(np.float16)
     audioRInterp = np.zeros((audioRShaped.shape[0],audioRShaped.shape[1]*interpolation)).astype(np.float16)
     print(f"audioLInterp {audioLInterp.shape}")
     print(f"audioRInterp {audioRInterp.shape}")
     if interpolation > 1:
-        print(" ")
         callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
-        print(" ")
         audioLInterp = signal.resample(audioLShaped, audioLShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audioRInterp = signal.resample(audioRShaped, audioRShaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         print(f"audioLInterp {audioLInterp.shape}")
@@ -2798,28 +2780,23 @@ def generate_delay_embed(output_name,input_audio,channel ,fps, res_width, res_he
     audio1 = np.pad(audio1,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     audio0 = np.pad(audio0,(extra_margin,extra_margin), 'edge') ## TO ADD 100 SAMPLES AT THE START TO LATER REMOVE FOR RESAMPLING
     print(f"shape audio1 {audio1.shape}")
-    print(" ")
     audio2Shaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audio1Shaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     audio0Shaped = np.zeros((n_frames,size_frame + extra_margin*2)).astype(np.float16) #chopping + 200 for margin
     print(f"shape audio1Shaped {audio1Shaped.shape}")
-    print(" ")
     for i in range(n_frames):
         audio2Shaped[i,:] = audio2[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audio1Shaped[i,:] = audio1[i*size_frame : (i+1)*size_frame + extra_margin*2]
         audio0Shaped[i,:] = audio0[i*size_frame : (i+1)*size_frame + extra_margin*2]
     print(f"shape audio1Shaped {audio1Shaped.shape}")
     print(f"shape audio0Shaped {audio0Shaped.shape}")
-    print(" ")
     audio2Interp = np.zeros((audio2Shaped.shape[0],audio2Shaped.shape[1]*interpolation)).astype(np.float16)
     audio1Interp = np.zeros((audio1Shaped.shape[0],audio1Shaped.shape[1]*interpolation)).astype(np.float16)
     audio0Interp = np.zeros((audio0Shaped.shape[0],audio0Shaped.shape[1]*interpolation)).astype(np.float16)
     print(f"audio1Interp {audio1Interp.shape}")
     print(f"audio0Interp {audio0Interp.shape}")
     if interpolation > 1:
-        print(" ")
         callback_function(-1,-1, text_state = True, text_message = "Upsampling...")
-        print(" ")
         audio2Interp = signal.resample(audio2Shaped, audio2Shaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audio1Interp = signal.resample(audio1Shaped, audio1Shaped.shape[1]*interpolation, axis = 1).astype(np.float16)
         audio0Interp = signal.resample(audio0Shaped, audio0Shaped.shape[1]*interpolation, axis = 1).astype(np.float16)
@@ -3097,7 +3074,7 @@ def create_combobox_dual(master, label_text, variable, divider, variable2, row, 
     combobox2.grid(row=row, column=1, padx=10, pady=5, sticky='e')
     combobox2.config(width=6)
     if tip:
-        tooltip = tk.Label(master, text=tip, font=("Helvetica", 10, "underline"), fg='gray', anchor="w", justify="left")
+        tooltip = tk.Label(master, text=tip, font=("Helvetica", 10), fg='gray', anchor="w", justify="left")
         tooltip.grid(row=row, column=2, padx=5, pady=5, sticky='w')
 
 def validate_numeric(value):
@@ -3236,26 +3213,49 @@ def show_preview(self):
 ################### LIVE AUDIO ##################
 #################################################
 
-audio_queue = queue.Queue()
+audio_queue = queue.Queue(maxsize=8)
 
-BLOCK_SIZE = 48000 // 60 # 800 SAMPLES
-
-def _callback(indata, frames, time, status):
-    audio_queue.put(indata.copy())
+SAMPLERATE = 48000
+BLOCK_SIZE = SAMPLERATE // 60
+CHANNELS = 2
 
 def audio_block_stream():
-    stream = sd.InputStream(
-        channels=2,
-        samplerate=48000,
-        blocksize=BLOCK_SIZE,
-        dtype='float32',
-        callback=_callback
-    )
-    stream.start()
+    if os.name == "nt":
+        mic = sc.get_microphone(
+            sc.default_speaker().name,
+            include_loopback=True
+        )
+
+        def capture_loop():
+            with mic.recorder(
+                samplerate=SAMPLERATE,
+                channels=CHANNELS,
+                blocksize=BLOCK_SIZE,
+            ) as rec:
+                while True:
+                    data = rec.record(BLOCK_SIZE)
+                    if not audio_queue.full():
+                        audio_queue.put(data.astype(np.float32))
+
+        threading.Thread(target=capture_loop, daemon=True).start()
+
+    else:
+        def _callback(indata, frames, time, status):
+            if not audio_queue.full():
+                audio_queue.put(indata.copy())
+
+        stream = sd.InputStream(
+            samplerate=SAMPLERATE,
+            channels=CHANNELS,
+            blocksize=BLOCK_SIZE,
+            dtype="float32",
+            callback=_callback,
+        )
+        stream.start()
 
     while True:
-        block = audio_queue.get()
-        yield block
+        yield audio_queue.get()
+
 
 def audio_thread():
     global latest_block
@@ -3571,7 +3571,7 @@ class SpectrumWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -3707,7 +3707,7 @@ class SpectrumdBWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -3834,7 +3834,7 @@ class SpecBalanceWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -3956,7 +3956,7 @@ class HistogramWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -4084,7 +4084,7 @@ class WaveformWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -4225,7 +4225,7 @@ class LongWaveformWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -4240,7 +4240,7 @@ class LongWaveformWindow:
         row_num += 1
         create_input_widgets_num(self.master, "Window Size:", self.window_size, row=row_num, tip="The smaller this is, the faster the waveform will move. Whole number.")
         row_num += 1
-        create_combobox(self.master, "*Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
+        create_combobox(self.master, "Drawing Style:", self.style, row=row_num, values=self.style_values, tip=" ", readonly=True)
         row_num += 1
         create_input_widgets_num(self.master, "*Thickness:", self.thickness, row=row_num, tip="Will duplicate the curve one pixel to the right and up.\nWill make the render slower the higher you go. Whole number")
         row_num += 1
@@ -4340,14 +4340,14 @@ class EnvelopeWindow:
         self.res_height = tk.IntVar(value=540)
         self.window_size = tk.IntVar(value=50000)
         self.smoothing = tk.IntVar(value=1000)
-        self.style = tk.StringVar(value="Just Points")
+        self.style = tk.StringVar(value="Curve")
         self.thickness = tk.IntVar(value="1")
         self.compression = tk.DoubleVar(value=0)
 
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -4472,7 +4472,7 @@ class OscilloscopeWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -4579,7 +4579,7 @@ class PolarWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -4711,7 +4711,7 @@ class PolarStereoWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -4840,7 +4840,7 @@ class RecurrenceWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         #warning_label = tk.Label(self.master, text="WARNING: Experimental feature. If it gives you any error that you think it shouldn't give you, contact me.", fg="red")
@@ -4972,7 +4972,7 @@ class ChladniWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -5096,7 +5096,7 @@ class PoincareWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
@@ -5220,7 +5220,7 @@ class DelayEmbedWindow:
         create_back_button(self.master)
 
         row_num = 0
-        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview")
+        label = tk.Label(master, text="Only properties with the * mark are modifiable for the live preview of desktop audio")
         label.grid(row=row_num, column=0, columnspan=3, padx=70, pady=5, sticky='w')
         row_num += 1
         create_file_input_row(self.master, "Input audio:", row=row_num, path_var=self.input_audio)
