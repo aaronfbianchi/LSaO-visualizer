@@ -128,7 +128,7 @@ You can select which audio stream you want to visualize with Pavucontrol. Just s
 
 **For Windows:**
 
-- Search for "sound settings"
+- Search for "Sound settings"
 
 <img width="233" height="213" alt="image" src="https://github.com/user-attachments/assets/84020ae1-d011-44eb-926b-0ac6da64f6e2" />
 
