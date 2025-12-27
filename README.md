@@ -115,6 +115,40 @@ Installation
 ---------------------
 You don't need to install it. Just double click the executable.
 
+Live Audio Visualiztion
+---------------------
+**For Linux:**
+
+You can select which audio stream you want to visualize with Pavucontrol. Just set that source as fallback in the "Input Devices" tab. 
+
+- Set as fallback "Monitor" to visualize Desktop Audio.
+- Set as fallback Internal Microphone or your audio interface for actual audio inputs.
+
+<img width="865" height="369" alt="image" src="https://github.com/user-attachments/assets/cde18d65-39cf-44ea-a967-bb571e5beabf" />
+
+**For Windows:**
+
+- Search for "sound settings"
+
+<img width="233" height="213" alt="image" src="https://github.com/user-attachments/assets/84020ae1-d011-44eb-926b-0ac6da64f6e2" />
+
+- Advanced -> More sound settings
+
+<img width="326" height="347" alt="image" src="https://github.com/user-attachments/assets/5796f39b-95ee-4bb8-85ff-dba6ce8dfe19" />
+
+- For Desktop Audio, you can select which audio stream you want to visualize in the "Playback" tab by setting it as default.
+
+<img width="400" height="454" alt="image" src="https://github.com/user-attachments/assets/84aac436-b8ad-4ed5-9457-022698813853" />
+
+- For live microphone input (or any other audio source like an audio interface), go to the "Recording" tab and double click on the device you want to use.
+
+<img width="395" height="451" alt="image" src="https://github.com/user-attachments/assets/8f99f074-e34d-4777-98b8-b1e843fee6b8" />
+
+- In the "Listen" tab, check "Listen to this Device" and then press OK/Apply.
+
+<img width="398" height="445" alt="image" src="https://github.com/user-attachments/assets/383b1178-7706-4f27-9a92-48b7b86db1e4" />
+
+
 Things to know
 ---------------------
 * The Windows releases of this software bundle FFmpeg (https://ffmpeg.org/). Nevertheless, if for any reason it's missing, it will try to use the FFmpeg in PATH if already installed. FFmpeg is licensed under the GNU General Public License version 3 (GPL v3). Prebuilt binaries used in this project are from Gyan.dev (https://www.gyan.dev/ffmpeg/builds/). The FFmpeg source code is available at https://ffmpeg.org/download.html#source
