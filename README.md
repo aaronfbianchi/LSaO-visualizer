@@ -3,94 +3,103 @@ by [Aaron F. Bianchi](https://aaronfbianchi.github.io/)
 
 Linear Spectrum and Oscilloscope Visualizer is an extremely fast audio visualization tool
 
-This tool can export videos of a linear spectrum, tuned short waveform, long waveform, X/Y oscilloscope, polar oscilloscope, recurrence plot, Poincaré plot or delay embedding plot of a song.  It supports multiple audio and video formats.
+This tool can export videos of a linear spectrum, tuned short waveform, long waveform, X/Y oscilloscope, vectorscope, polar oscilloscope, recurrence plot, Poincaré plot, Chladni plate simulator or delay embedding plot of a song. It supports multiple audio and video formats.
 
 Coded to look as **violent**, **responsive**, **snappy** and **rough** as possible. It draws a white visualizer over a black background for further processing with a video editor of your preference.
 
 Linear Spectrum:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum.gif"
-       alt="Example Spectrum GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
+
+![Example Spectrum GIF](img/example-spectrum.gif) 
+
+
 Short Waveform:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-short-waveform.gif"
-       alt="Example Short Waveform GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
+
+![Example Short Waveform GIF](img/example-short-waveform.gif) 
+
+
 Linear Spectrum (dB):
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-spectrum-dB.gif"
-       alt="Example Spectrum dB GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
+
+![Example Spectrum (dB) GIF](img/example-spectrum-dB.gif) 
+
+
+Spectrogram:
+
+![Example Spectrogram GIF](img/example-spectrogram.gif) 
+
+
 Long Waveform:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-long-waveform.gif"
-       alt="Example Long Waveform GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
-Stereo Oscilloscope and Mono Polar Oscilloscope:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-osc-github.gif"
-       alt="Example Stereo Oscilloscope GIF"
-       style="max-width: 100%; height: auto; margin: 0px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-github.gif"
-       alt="Example Polar Oscilloscope GIF"
-       style="max-width: 100%; height: auto; margin: 0px;">
-</div>
+
+![Example Long Waveform GIF](img/example-long-waveform.gif) 
+
+
+Stereo Oscilloscope:
+
+![Example Stereo Oscilloscope GIF](img/example-osc-github.gif) 
+
+
+Polar Vectorscope:
+
+![Example Vectorscope GIF](img/example-vectorscope.gif) 
+
+
+Mono Polar Oscilloscope:
+
+![Example Mono Polar Oscilloscope GIF](img/example-polar-github.gif) 
+
+
 Stereo Polar Oscilloscope (one audio source and various tunings):
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-stereo.gif"
-       alt="Example Stereo Polar Oscilloscope GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
-Mono Polar Oscilloscope and Stereo Polar Oscilloscope:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-death.gif"
-       alt="Example Polar Oscilloscope (Violent) GIF"
-       style="max-width: 100%; height: auto; margin: 0px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-polar-stereo-death.gif"
-       alt="Example Stereo Polar Oscilloscope (Violent) GIF"
-       style="max-width: 100%; height: auto; margin: 0px;">
-</div>
-Linear Spectral Balance and Recurrence Plot:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-balance-github.gif"
-       alt="Example Spectral Balance GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-recurrence.gif"
-       alt="Example Recurrence Plot GIF"
-       style="max-width: 100%; height: auto; margin: 0px;">
-</div>
-Poincaré Plot and Delay Embedding Plot:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-poincare.gif"
-       alt="Example Poincaré Plot GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-embed.gif"
-       alt="Example Delay Embedding Plot GIF"
-       style="max-width: 100%; height: auto; margin: 0px;">
-</div>
+
+![Example Stereo Polar Oscilloscope GIF](img/example-polar-stereo.gif) 
+
+
+Mono Polar Oscilloscope:
+
+![Example Mono Polar Oscilloscope 2 GIF](img/example-polar-death.gif) 
+
+
+Stereo Polar Oscilloscope:
+
+![Example Stereo Polar Oscilloscope 2 GIF](img/example-polar-stereo-death.gif)
+
+
+Linear Spectral Balance:
+
+![Example Linear Spectral Balance GIF](img/example-balance-github.gif)
+
+
+Recurrence Plot:
+
+![Example Recurrence GIF](img/example-recurrence.gif)
+
+
+Poincaré Plot
+
+![Example Poincaré GIF](img/example-poincare.gif)
+
+
+Delay Embedding Plot:
+
+![Example Delay Embedding GIF](img/example-embed.gif)
+
+
 Histogram Visualizer:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-histogram.gif"
-       alt="Example Histogram GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
+
+![Example Histogram GIF](img/example-histogram.gif)
+
+
+False Chladni Plate Visualizer:
+
+![Example False Chladni GIF](img/example-false-chladni.gif)
+
+
 Chladni Plate Visualizer:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-chladni.gif"
-       alt="Example Chladni Plate GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
+
+![Example Chladni GIF](img/example-chladni.gif)
+
+
 Envelope Visualizer:
-<div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap;">
-  <img src="https://github.com/aaronfbianchi/LSaO-visualizer/blob/main/img/example-envelope.gif"
-       alt="Example Envelope GIF"
-       style="max-width: 100%; height: auto; margin: 10px;">
-</div>
+
+![Example Envelope GIF](img/example-envelope.gif)
 
 
 Bunch of demo videos
@@ -109,13 +118,13 @@ This small project started due to the omnipresence of logarithmic spectrum visua
 
 Download
 ---------------------
-You can download it [here](https://github.com/aaronfbianchi/LSaO-visualizer/releases).
+You can download it [here](https://codeberg.org/aaronfbianchi/LSaO-visualizer/releases).
 
 Installation
 ---------------------
 You don't need to install it. Just double click the executable.
 
-Live Audio Visualiztion
+Live Audio Visualization
 ---------------------
 **For Linux:**
 
@@ -153,7 +162,6 @@ Things to know
 ---------------------
 * The Windows releases of this software bundle FFmpeg (https://ffmpeg.org/). Nevertheless, if for any reason it's missing, it will try to use the FFmpeg in PATH if already installed. FFmpeg is licensed under the GNU General Public License version 3 (GPL v3). Prebuilt binaries used in this project are from Gyan.dev (https://www.gyan.dev/ffmpeg/builds/). The FFmpeg source code is available at https://ffmpeg.org/download.html#source
 
-* The Stereo X/Y and Polar Visualizers only work with stereo files as it wouldn't make any sense to visualize a mono file with a stereo oscilloscope.
 
 Tips if using on Windows
 -------------------------
@@ -162,35 +170,16 @@ Tips if using on Windows
 
 Running from source
 ---------------------
-Being a Python 3.11.2 program, you'll need some libraries, which you can see in the "requirements.txt" file. To install them, run these commands.
-
-For Linux:
-
-    # For setting up your virtual environment
-    python3 -m venv venv
-    source venv/bin/activate
-
-    # For installing the libraries
-    pip install -r requirements.txt
-
-For Windows:
-
-    # For setting up your virtual environment
-    python3 -m venv venv
-    venv\Scripts\activate
-
-    # For installing the libraries
-    pip install -r requirements.txt
+Version 3.00 uses 'uv' as the library manager. To run this program, clone it and execute 'uv run src/main.py' in the command line.
 
 Aditionally, if you want to create an executable from source, these libraries have worked for me:
-* cx_Freeze v6.15.14 (For Linux)
-* pyinstaller v6.3.0 (For Windows)
+* cx-freeze==8.7.1 (For Linux)
+* pyinstaller>=6.22.3 (For Windows)
 
-For creating executable from Linux:
+For creating an executable from Linux:
 
-    python setup.py build
+    uv run cxfreeze build_exe
 
-For creating executable from Windows:
+For creating an executable from Windows:
 
-    pyinstaller --onefile --console main.py
-
+    uv run pyinstaller --onefile --noupx --add-data resources/*:resources src/main.py
