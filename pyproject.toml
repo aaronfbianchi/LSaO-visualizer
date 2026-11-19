@@ -1,0 +1,39 @@
+[project]
+name = "LSaO-Visualizer"
+description = "Extremely Violent and Fast Visualization Tool"
+version = "3.0.0-dev" # TODO: Supposedly, uv allows "dynamic versioning" depending on the "build backend"
+
+requires-python = ">=3.14" # TODO: Once the project structure has stabilized, should we try to reduce this?
+
+dependencies = [
+    "numpy==2.5.4",
+    "pillow==13.0.0",
+    "progress==1.6.1",
+    "soundcard; sys_platform == 'win32'",
+    "sounddevice==0.5.3; sys_platform != 'win32'",
+    "hidpi-tk>=1.4.1",
+    "tqdm>=4.70.1",
+    "pybytesize>=0.8.1",
+]
+
+[dependency-groups]
+dev = [
+    "cx-freeze==8.7.1",
+    "pyinstaller>=6.22.3",
+    # Development setups get both audio capture packages to make the red squiggles go away
+    "soundcard",
+    "sounddevice==0.5.3",
+]
+
+# Linux:
+# uv run cxfreeze build_exe
+# Windows:
+# uv run pyinstaller --onefile --hide-console --noupx --add-data resources/*:resources src/main.py
+
+[[tool.cxfreeze.executables]]
+script = "src/main.py"
+target_name = "lsao"
+
+[tool.cxfreeze.build_exe]
+optimize = 2
+include-files = ["resources"]

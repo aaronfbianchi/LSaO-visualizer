@@ -1,0 +1,12 @@
+numpy==2.5.4
+pillow==13.0.0
+progress==1.6.1
+hidpi-tk>=1.4.1
+tqdm>=4.70.1
+pybytesize>=0.8.1
+
+[:sys_platform != "win32"]
+sounddevice==0.5.3
+
+[:sys_platform == "win32"]
+soundcard

@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: LSaO-Visualizer
+Version: 3.0.0.dev0
+Summary: Extremely Violent and Fast Visualization Tool
+Requires-Python: >=3.14
+License-File: LICENSE
+Requires-Dist: numpy==2.5.4
+Requires-Dist: pillow==13.0.0
+Requires-Dist: progress==1.6.1
+Requires-Dist: soundcard; sys_platform == "win32"
+Requires-Dist: sounddevice==0.5.3; sys_platform != "win32"
+Requires-Dist: hidpi-tk>=1.4.1
+Requires-Dist: tqdm>=4.70.1
+Requires-Dist: pybytesize>=0.8.1
+Dynamic: license-file
