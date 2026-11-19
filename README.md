@@ -104,7 +104,7 @@ Envelope Visualizer:
 
 Bunch of demo videos
 ---------------------
-* [Hellhacker](https://www.youtube.com/watch?v=upkUpTIws48) by Aaron F. Bianchi
+* [Me When HL3](https://youtu.be/Rh9YxiJuu88) by Aaron F. Bianchi
 * [Slaying With Portals](https://www.youtube.com/watch?v=IIGqghktYas) by Aaron F. Bianchi
 * [The Forbidden Dance](https://www.youtube.com/watch?v=qKTOINiTxGw) by The Hamster Alliance
 * [Nailgun](https://www.youtube.com/watch?v=buWPKEcAkw8) by Aaron F. Bianchi
