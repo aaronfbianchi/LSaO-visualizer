@@ -1,0 +1,21 @@
+Things that are planned to be done before v3.00:
+
+Jup:
+- Not use the crappy tkinter file dialog. Use system's default when possible.
+- Write a shrinking bool matrix function that preserves True values over False values.
+
+The0x539:
+- Raw data output in CLI?
+- Improve the progress bar for GUI mode
+- Rework thickness filter
+
+Things that are planned to be done before v4.00:
+
+Jup:
+- Add 2 more cool visualizer modes to have 17 in total.
+- Replace tkinter with a more powerful UI framework (likely Qt at this point but possibly something else)
+    - Add a "compact layout" option to the main menu that uses square packing instead of a grid
+
+Things that are planned to be done but not for a version in specific:
+
+- Do an interface for arranging multiple visualizers at once, allowing multitracking.
