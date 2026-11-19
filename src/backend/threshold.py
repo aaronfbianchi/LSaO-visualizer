@@ -298,7 +298,12 @@ class SpectrogramVisualizer(MonoVisualizer):
 
         fsong_trim = trim_fft(fsong, self.frequency_limits, sample_rate)
 
-        fsong_bool = fsong_trim.T > self.threshold**6 ##THRESHOLD REMAPPED
+        if self.threshold > 0:
+            fsong_bool = np.greater(fsong_trim.T, self.threshold**6)
+        else:
+            fsong_bool = np.less(fsong_trim.T, self.threshold**6)
+
+        #fsong_bool = fsong_trim.T > (np.sign(self.threshold)*self.threshold**6) ##THRESHOLD REMAPPED
 
         # Scale to output resolution (nearest neighbor)
         full_width = int(res_width * duration_seconds / self.time)
@@ -327,7 +332,10 @@ class SpectrogramVisualizer(MonoVisualizer):
         fsong = abs(np.fft.rfft(audio))
 
         fsong_trim = trim_fft(fsong, self.frequency_limits, 48000)
-        fsong_bool = fsong_trim.T > 500*self.threshold**6 ##THRESHOLD REMAPPED
+        if self.threshold > 0:
+            fsong_bool = np.greater(fsong_trim.T, 500*self.threshold**6)
+        else:
+            fsong_bool = np.less(fsong_trim.T, 500*self.threshold**6)
 
         indices = np.linspace(0, len(fsong_trim) - 1, 48000//60).round().astype('int')
         fsong_scalled = fsong_bool[indices]
@@ -520,7 +528,11 @@ def do_chladni_frame(sample_rate, audio, res_width, res_height, k, vol, upscale,
         deviation_scaled = resize_matrix_lerp(deviation, res_width//2, res_height//2)
     else:
         deviation_scaled = deviation
-    qframe = deviation_scaled > (threshold/100)
+    # qframe = deviation_scaled > (threshold/100)
+    if threshold > 0:
+        qframe = np.greater(deviation_scaled, threshold/100)
+    else:
+        qframe = np.less(deviation_scaled, -threshold/100)
     # frame = deviation.astype(np.uint8)
 
     dwframe = np.concat((np.fliplr(qframe), qframe), axis = 1)
